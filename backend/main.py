@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import uvicorn
 from app.core.config import settings
-from app.api.v1.api import api_router
+from app.api.v1 import api_router
 from app.core.logging import setup_logging
 
 @asynccontextmanager
