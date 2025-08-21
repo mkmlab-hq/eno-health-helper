@@ -6,19 +6,10 @@ FastAPI 기반 건강 측정 분석 시스템
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-<<<<<<< HEAD
 from pydantic import BaseModel
 import numpy as np
 import logging
 from typing import List, Dict, Any
-=======
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import uvicorn
-from app.core.config import settings
-from app.api.v1 import api_router
-from app.core.logging import setup_logging
->>>>>>> cc17bd21ebec23ae8472e255a559b421cb47b61d
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
