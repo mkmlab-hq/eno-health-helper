@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # Backend (FastAPI) - 개발용
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/app
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+networks:
+  eno-network:
+    driver: bridge 

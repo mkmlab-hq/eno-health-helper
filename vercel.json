@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "eno-health-helper",
   "builds": [
     {
       "src": "frontend/package.json",
@@ -21,10 +20,5 @@
     "NEXT_PUBLIC_API_URL": "https://eno.no1kmedi.com/api",
     "NEXT_PUBLIC_APP_NAME": "엔오건강도우미",
     "NEXT_PUBLIC_DOMAIN": "eno.no1kmedi.com"
-  },
-  "functions": {
-    "frontend/next.config.js": {
-      "maxDuration": 30
-    }
   }
 } 

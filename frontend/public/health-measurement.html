@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엔오건강도우미 - 건강 측정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-cyan: #06b6d4;
+            --primary-cyan-dark: #0891b2;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --glass-border: rgba(148, 163, 184, 0.1);
+            --neon-glow: 0 0 20px rgba(6, 182, 212, 0.3);
+            --deep-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--deep-shadow), var(--neon-glow);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+        }
+
+        .neon-border {
+            box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.1), 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(6, 182, 212, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-cyan), transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.6, 1);
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .face-outline {
+            position: relative;
+            border: 2px solid transparent;
+            background: linear-gradient(45deg, var(--primary-cyan), var(--accent-blue), var(--accent-purple));
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease infinite;
+            pointer-events: none;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .face-outline::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border: 2px solid transparent;
+            border-radius: inherit;
+            background: linear-gradient(45deg, var(--primary-cyan), var(--accent-blue), var(--accent-purple));
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease infinite reverse;
+            z-index: -1;
+        }
+
+        .waveform-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform-bar {
+            background: linear-gradient(180deg, var(--primary-cyan), var(--accent-blue));
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+            animation: wave-animation 1.5s ease-in-out infinite;
+        }
+
+        @keyframes wave-animation {
+            0%, 100% { 
+                transform: scaleY(0.1);
+                opacity: 0.3;
+            }
+            50% { 
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+
+        .waveform-bar:nth-child(1) { animation-delay: -1.5s; }
+        .waveform-bar:nth-child(2) { animation-delay: -1.2s; }
+        .waveform-bar:nth-child(3) { animation-delay: -0.9s; }
+        .waveform-bar:nth-child(4) { animation-delay: -0.6s; }
+        .waveform-bar:nth-child(5) { animation-delay: -0.3s; }
+        .waveform-bar:nth-child(6) { animation-delay: 0s; }
+        .waveform-bar:nth-child(7) { animation-delay: -0.3s; }
+        .waveform-bar:nth-child(8) { animation-delay: -0.6s; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-cyan), var(--accent-blue));
+            border: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .health-score {
+            background: linear-gradient(135deg, var(--glass-bg), rgba(6, 182, 212, 0.1));
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .health-score::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-cyan), var(--accent-blue), var(--accent-purple));
+            animation: gradient-shift 3s ease infinite;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary-cyan);
+            border-radius: 50%;
+            animation: particle-float 4s ease-in-out infinite;
+        }
+
+        @keyframes particle-float {
+            0%, 100% { 
+                transform: translateY(0) scale(1);
+                opacity: 0;
+            }
+            50% { 
+                transform: translateY(-20px) scale(1.5);
+                opacity: 1;
+            }
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 0.5s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 1.5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 2.5s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 3.5s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 1s; }
+        .particle:nth-child(10) { left: 95%; animation-delay: 2s; }
+    </style>
+</head>
+<body class="text-white flex items-center justify-center min-h-screen p-4 relative">
+    <!-- 배경 파티클 효과 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="w-full max-w-md mx-auto glass-panel rounded-3xl p-8 text-center flex flex-col min-h-[700px] relative">
+        <!-- 1. 시작 화면 -->
+        <div id="welcome-screen" class="flex flex-col flex-grow justify-center items-center fade-in">
+            <div class="mb-8 relative">
+                <div class="w-24 h-24 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center floating pulse-glow">
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="absolute -inset-4 bg-gradient-to-r from-cyan-400/20 to-blue-500/20 rounded-full blur-xl"></div>
+            </div>
+            
+            <h1 class="text-4xl font-bold mb-4 neon-text text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                엔오건강도우미
+            </h1>
+            
+            <p class="text-gray-300 mb-12 text-lg leading-relaxed max-w-sm">
+                엔오플렉스 복용 전후, 당신의 건강 변화를<br>
+                <span class="text-cyan-400 font-semibold">35초 만에 데이터로 확인</span>하세요.
+            </p>
+            
+            <button id="start-btn" class="btn-primary w-full text-white font-bold py-5 px-8 rounded-2xl text-lg relative overflow-hidden group">
+                <span class="relative z-10 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    측정 시작하기
+                </span>
+            </button>
+            
+            <div class="mt-8 text-xs text-gray-500 space-y-1">
+                <p>🔒 개인정보는 서버에 저장되지 않습니다</p>
+                <p>⚡ 실시간 AI 분석으로 즉시 결과 확인</p>
+            </div>
+        </div>
+
+        <!-- 2. 얼굴 측정 화면 -->
+        <div id="face-screen" class="hidden flex flex-col flex-grow justify-center items-center slide-up">
+            <h2 class="text-3xl font-bold mb-2 neon-text text-cyan-400">고요의 시간</h2>
+            <p class="text-gray-300 mb-8 text-lg">화면의 가이드라인에 얼굴을 맞춰주세요</p>
+            
+            <div class="relative w-72 h-96 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center mb-8 neon-border overflow-hidden">
+                <!-- 스캔 라인 -->
+                <div class="scan-line"></div>
+                
+                <!-- 가상 카메라 피드 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 opacity-30"></div>
+                
+                <!-- 카메라 피드 영역 표시 -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-48 h-64 bg-slate-600/20 rounded-lg border border-cyan-400/20">
+                        <div class="w-full h-full flex items-center justify-center text-cyan-400/60 text-sm">
+                            카메라 피드 영역
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 얼굴 가이드라인 -->
+                <div class="absolute inset-0 flex items-center justify-center z-10">
+                    <div class="w-40 h-52 rounded-full relative">
+                        <div class="absolute inset-0 border-2 border-cyan-400/40 rounded-full"></div>
+                        <div class="absolute inset-2 border border-cyan-400/30 rounded-full"></div>
+                        <div class="absolute inset-4 border border-cyan-400/20 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <!-- 타이머 -->
+                <div class="absolute top-6 right-6">
+                    <svg class="w-20 h-20 progress-ring" viewBox="0 0 120 120">
+                        <circle class="text-slate-700" stroke-width="6" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
+                        <circle id="face-progress-circle" class="progress-ring__circle text-cyan-400" stroke-width="6" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60"/>
+                    </svg>
+                    <span id="face-timer-text" class="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white">30</span>
+                </div>
+                
+                <!-- 측정 상태 표시 -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                    <div class="flex items-center space-x-2 text-cyan-400 text-sm">
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span>측정 중...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-sm text-gray-400 text-center max-w-xs leading-relaxed">
+                가장 정확한 심박 및 HRV 측정을 위해<br>
+                <span class="text-cyan-400 font-medium">움직이지 않고 편안한 상태</span>를 유지해주세요
+            </p>
+        </div>
+
+        <!-- 3. 음성 측정 화면 -->
+        <div id="voice-screen" class="hidden flex flex-col flex-grow justify-center items-center slide-up">
+            <h2 class="text-3xl font-bold mb-2 neon-text text-purple-400">메아리의 시간</h2>
+            <p class="text-gray-300 mb-8 text-lg">5초간 '아-' 소리를 편안하게 내주세요</p>
+            
+            <div class="relative w-72 h-96 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center mb-8 neon-border overflow-hidden">
+                <!-- 음성 파형 시각화 -->
+                <div class="waveform-container flex items-center justify-center h-32 space-x-1">
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                    <div class="waveform-bar w-3 bg-gradient-to-t from-cyan-400 to-blue-500"></div>
+                </div>
+                
+                <!-- 타이머 -->
+                <div class="absolute top-6 right-6">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-xl font-bold shadow-lg">
+                        <span id="voice-timer-text">5</span>s
+                    </div>
+                </div>
+                
+                <!-- 음성 레벨 표시 -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                    <div class="flex items-center space-x-2 text-purple-400 text-sm">
+                        <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        <span>음성 감지 중...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-sm text-gray-400 text-center max-w-xs leading-relaxed">
+                주변 소음이 없는 조용한 환경에서<br>
+                <span class="text-purple-400 font-medium">가장 정확한 음성 분석</span>이 가능합니다
+            </p>
+        </div>
+        
+        <!-- 4. 분석 중 화면 -->
+        <div id="analyzing-screen" class="hidden flex flex-col flex-grow justify-center items-center slide-up">
+            <div class="relative mb-8">
+                <div class="w-28 h-28 border-4 border-transparent border-t-cyan-400 border-r-blue-500 border-b-purple-500 border-l-pink-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 w-28 h-28 border-4 border-transparent border-t-cyan-400 border-r-blue-500 border-b-purple-500 border-l-pink-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 2s;"></div>
+            </div>
+            
+            <h2 class="text-3xl font-bold mb-4 neon-text text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500">
+                건강 데이터를 분석 중입니다
+            </h2>
+            
+            <p class="text-gray-300 text-center max-w-sm leading-relaxed">
+                당신의 생체 신호 속 숨겨진 의미를 찾고 있습니다.<br>
+                <span class="text-cyan-400 font-medium">AI가 정밀하게 분석</span>하고 있어요
+            </p>
+            
+            <!-- 분석 진행 바 -->
+            <div class="w-full max-w-xs mt-8">
+                <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                    <div id="analysis-progress" class="h-2 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. 결과 화면 -->
+        <div id="result-screen" class="hidden flex flex-col flex-grow justify-center items-start text-left slide-up">
+            <h2 class="text-4xl font-bold mb-8 neon-text text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                측정 결과
+            </h2>
+            
+            <div class="w-full health-score rounded-2xl p-8 space-y-6 mb-10">
+                <div class="text-center mb-6">
+                    <p class="text-sm text-gray-400 mb-2">건강 활력 점수</p>
+                    <p class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                        82 <span class="text-2xl font-normal text-white">점</span>
+                    </p>
+                    <div class="w-full bg-slate-700 rounded-full h-3 mt-4 overflow-hidden">
+                        <div class="h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full" style="width: 82%"></div>
+                    </div>
+                </div>
+                
+                <hr class="border-slate-600">
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-400 mb-2">스트레스 수준</p>
+                        <p class="text-2xl font-bold text-green-400">낮음</p>
+                        <div class="w-full bg-slate-700 rounded-full h-2 mt-2 overflow-hidden">
+                            <div class="h-2 bg-gradient-to-r from-green-400 to-green-500 rounded-full" style="width: 25%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p class="text-sm text-gray-400 mb-2">자율신경 균형</p>
+                        <p class="text-2xl font-bold text-blue-400">안정적</p>
+                        <div class="w-full bg-slate-700 rounded-full h-2 mt-2 overflow-hidden">
+                            <div class="h-2 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="compare-btn" class="btn-primary w-full text-white font-bold py-5 px-8 rounded-2xl text-lg mb-6">
+                <span class="flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    복용 전/후 비교하기
+                </span>
+            </button>
+            
+            <p class="text-xs text-gray-500 text-center w-full">
+                결과는 마이페이지에 안전하게 저장됩니다
+            </p>
+        </div>
+    </div>
+
+<script>
+    const screens = {
+        welcome: document.getElementById('welcome-screen'),
+        face: document.getElementById('face-screen'),
+        voice: document.getElementById('voice-screen'),
+        analyzing: document.getElementById('analyzing-screen'),
+        result: document.getElementById('result-screen')
+    };
+
+    const startBtn = document.getElementById('start-btn');
+    const faceProgressCircle = document.getElementById('face-progress-circle');
+    const faceTimerText = document.getElementById('face-timer-text');
+    const voiceTimerText = document.getElementById('voice-timer-text');
+    const analysisProgress = document.getElementById('analysis-progress');
+    
+    const FACE_DURATION = 30;
+    const VOICE_DURATION = 5;
+    const ANALYSIS_DURATION = 3000; // 3초
+
+    // 프로그레스 링 설정
+    const radius = faceProgressCircle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    faceProgressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+    faceProgressCircle.style.strokeDashoffset = circumference;
+
+    function setProgress(percent) {
+        const offset = circumference - percent / 100 * circumference;
+        faceProgressCircle.style.strokeDashoffset = offset;
+    }
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => {
+            screen.classList.add('hidden');
+            screen.classList.remove('fade-in', 'slide-up');
+        });
+        
+        const targetScreen = screens[screenName];
+        targetScreen.classList.remove('hidden');
+        
+        // 애니메이션 클래스 추가
+        if (screenName === 'welcome') {
+            targetScreen.classList.add('fade-in');
+        } else {
+            targetScreen.classList.add('slide-up');
+        }
+    }
+
+    function startFaceMeasurement() {
+        showScreen('face');
+        let timeLeft = FACE_DURATION;
+        faceTimerText.textContent = timeLeft;
+        setProgress(0);
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            faceTimerText.textContent = timeLeft;
+            setProgress(((FACE_DURATION - timeLeft) / FACE_DURATION) * 100);
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                startVoiceMeasurement();
+            }
+        }, 1000);
+    }
+
+    function startVoiceMeasurement() {
+        showScreen('voice');
+        let timeLeft = VOICE_DURATION;
+        voiceTimerText.textContent = timeLeft;
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            voiceTimerText.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                startAnalysis();
+            }
+        }, 1000);
+    }
+    
+    function startAnalysis() {
+        showScreen('analyzing');
+        
+        // 분석 진행 바 애니메이션
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += 2;
+            analysisProgress.style.width = progress + '%';
+            
+            if (progress >= 100) {
+                clearInterval(progressInterval);
+                setTimeout(() => {
+                    showScreen('result');
+                }, 500);
+            }
+        }, ANALYSIS_DURATION / 50);
+    }
+
+    // 이벤트 리스너
+    startBtn.addEventListener('click', () => {
+        // 실제 구현 시 여기서 카메라/마이크 권한 요청
+        // navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        // .then(stream => { ... })
+        startFaceMeasurement();
+    });
+
+    // 페이지 로드 시 시작 화면 표시
+    document.addEventListener('DOMContentLoaded', () => {
+        showScreen('welcome');
+    });
+
+    // 키보드 단축키 지원
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !screens.welcome.classList.contains('hidden')) {
+            startFaceMeasurement();
+        }
+    });
+</script>
+</body>
+</html> 

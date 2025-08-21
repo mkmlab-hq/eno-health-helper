@@ -1,165 +1,233 @@
 'use client';
 
-import { useState } from 'react';
-import { QRCode, Camera, Mic, TrendingUp, Shield, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { QrCode, Camera, Mic, Activity, Heart, Volume2, TrendingUp } from 'lucide-react';
+import { checkHealth, getMeasurementHistory, HealthStatus, MeasurementHistory } from './api/health';
 
-export default function HomePage() {
-  const [productId, setProductId] = useState<string | null>(null);
+export default function Home() {
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [measurementHistory, setMeasurementHistory] = useState<MeasurementHistory | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleQRScan = (scannedProductId: string) => {
-    setProductId(scannedProductId);
+  // 컴포넌트 마운트 시 API 상태 확인
+  useEffect(() => {
+    checkApiHealth();
+    loadMeasurementHistory();
+  }, []);
+
+  // API 헬스체크
+  const checkApiHealth = async () => {
+    try {
+      setLoading(true);
+      const status = await checkHealth();
+      setHealthStatus(status);
+      setError(null);
+    } catch (err) {
+      setError('백엔드 API 연결 실패');
+      console.error('API Health check failed:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const startMeasurement = () => {
-    // 측정 페이지로 이동
-    window.location.href = '/measurement';
+  // 측정 기록 로드
+  const loadMeasurementHistory = async () => {
+    try {
+      const history = await getMeasurementHistory();
+      setMeasurementHistory(history);
+    } catch (err) {
+      console.error('Failed to load measurement history:', err);
+    }
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-eno-700">🏥 엔오건강도우미</h1>
-              <p className="text-sm text-gray-600">ENO Health Helper</p>
+            <div className="flex items-center space-x-3">
+              <Activity className="h-8 w-8 text-indigo-600" />
+              <h1 className="text-2xl font-bold text-gray-900">
+                <span className="text-indigo-600">엔오</span>건강도우미
+                <span className="text-sm text-gray-500 ml-2">by MKM Lab</span>
+              </h1>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              의료 진단 아님 · 참고용
+            
+            {/* API 상태 표시 */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${healthStatus ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-sm text-gray-600">
+                  {loading ? '연결 중...' : healthStatus ? 'API 연결됨' : 'API 연결 안됨'}
+                </span>
+              </div>
+              <button
+                onClick={checkApiHealth}
+                disabled={loading}
+                className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 disabled:opacity-50"
+              >
+                새로고침
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            엔오플렉스와 함께하는<br />
-            <span className="text-eno-600">건강한 변화</span>
+            <span className="text-blue-600">엔오 건강 도우미</span>와 함께하는 건강한 변화
           </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            복용 전후 생체신호 변화를 측정하여 개인화된 웰니스 가이드를 제공합니다.
-            QR 코드를 스캔하고 건강 측정을 시작해보세요.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
+            MKM Lab의 첨단 AI 기술로 구현된 RPPG(원격 광전용맥파)와 음성 분석을 통해 
+            심박수, 스트레스 지수, 음성 특성을 과학적으로 측정하고 건강 상태를 종합적으로 분석합니다.
           </p>
-        </div>
-
-        {/* QR Scanner Section */}
-        <div className="card max-w-md mx-auto mb-12">
-          <div className="text-center mb-6">
-            <div className="w-20 h-20 bg-eno-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <QRCode className="w-10 h-10 text-eno-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              QR 코드 스캔
-            </h3>
-            <p className="text-gray-600 text-sm">
-              엔오플렉스 포장지의 QR 코드를 스캔하세요
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
+            <p className="text-blue-800 font-medium">
+              💡 <strong>MKM Lab 기술력:</strong> 의료기기 수준의 신호 처리 알고리즘, 
+              실시간 생체신호 분석, AI 기반 건강 상태 평가
             </p>
           </div>
-          
-          {!productId ? (
-            <button className="btn-primary w-full">
-              <QRCode className="w-5 h-5 mr-2 inline" />
-              QR 스캔 시작
-            </button>
-          ) : (
-            <div className="text-center">
-              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg mb-4">
-                ✅ 제품 인식 완료
-              </div>
-              <button onClick={startMeasurement} className="btn-primary w-full">
-                건강 측정 시작
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* API 상태 정보 */}
+        {healthStatus && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">백엔드 API 상태</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{healthStatus.status}</div>
+                <div className="text-sm text-gray-600">상태</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{healthStatus.service}</div>
+                <div className="text-sm text-gray-600">서비스명</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {new Date(healthStatus.timestamp).toLocaleString('ko-KR')}
+                </div>
+                <div className="text-sm text-gray-600">마지막 업데이트</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 측정 기록 정보 */}
+        {measurementHistory && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">측정 기록 현황</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">{measurementHistory.total}</div>
+                <div className="text-sm text-gray-600">총 측정 수</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{measurementHistory.limit}</div>
+                <div className="text-sm text-gray-600">페이지당 표시</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{measurementHistory.offset}</div>
+                <div className="text-sm text-gray-600">현재 오프셋</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          <div className="card text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Camera className="w-8 h-8 text-red-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {/* QR 스캔 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" 
+               onClick={() => window.location.href = '/health-measurement-v3.html'}>
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
+              <QrCode className="h-6 w-6 text-blue-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">RPPG 분석</h3>
-            <p className="text-gray-600 text-sm">
-              얼굴 혈류 변화를 실시간으로 분석하여 맥박과 심박변이도를 측정합니다.
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">건강 측정 시작</h3>
+            <p className="text-gray-600">
+              클릭하여 바로 건강 측정을 시작하세요. RPPG 및 음성 분석을 통해 
+              종합적인 건강 상태를 확인할 수 있습니다.
+            </p>
+            <div className="mt-3 text-blue-600 text-sm font-medium">
+              → 지금 시작하기
+            </div>
+          </div>
+
+          {/* RPPG 측정 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
+              <Camera className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">RPPG 측정</h3>
+            <p className="text-gray-600">
+              MKM Lab의 의료기기 수준 알고리즘으로 카메라를 통해 
+              심박수, HRV, 스트레스 지수를 정확하게 측정합니다.
             </p>
           </div>
 
-          <div className="card text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mic className="w-8 h-8 text-green-600" />
+          {/* 음성 분석 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mb-4">
+              <Mic className="h-6 w-6 text-purple-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">음성 분석</h3>
-            <p className="text-gray-600 text-sm">
-              음성의 주파수, 지터, 쉬머, 조화대잡음비를 분석하여 음성 특성을 평가합니다.
+            <p className="text-gray-600">
+              AI 기반 음성 특성 분석으로 F0, 지터, 시머, HNR을 정밀하게 측정하여 
+              건강 상태를 종합적으로 평가합니다.
             </p>
           </div>
 
-          <div className="card text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
+          {/* 건강 지표 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mb-4">
+              <Heart className="h-6 w-6 text-red-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">변화 추적</h3>
-            <p className="text-gray-600 text-sm">
-              복용 전후 변화를 시각화하고 개인화된 웰니스 가이드를 제공합니다.
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">건강 지표</h3>
+            <p className="text-gray-600">
+              MKM Lab의 AI 알고리즘으로 심박수, HRV, 스트레스 지수 등 
+              종합적인 건강 지표를 실시간으로 제공합니다.
+            </p>
+          </div>
+
+          {/* 음성 특성 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mb-4">
+              <Volume2 className="h-6 w-6 text-yellow-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">음성 특성</h3>
+            <p className="text-gray-600">
+              MKM Lab의 고급 신호 처리 기술로 F0, 지터, 시머, HNR 등 
+              음성의 과학적 특성을 정밀하게 분석합니다.
+            </p>
+          </div>
+
+          {/* 트렌드 분석 */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-lg mb-4">
+              <TrendingUp className="h-6 w-6 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">트렌드 분석</h3>
+            <p className="text-gray-600">
+              MKM Lab의 머신러닝 기술로 시간에 따른 건강 지표 변화를 
+              지능적으로 추적하고 예측 분석을 제공합니다.
             </p>
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">측정 준비사항</h3>
-          <div className="grid md:grid-cols-3 gap-6 text-sm">
-            <div>
-              <h4 className="font-medium text-eno-600 mb-2 flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                개인정보 보호
-              </h4>
-              <ul className="text-gray-600 space-y-1">
-                <li>• 영상/음성 로컬 처리</li>
-                <li>• 원본 데이터 저장 안함</li>
-                <li>• 분석 결과만 제공</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium text-eno-600 mb-2 flex items-center">
-                <Camera className="w-4 h-4 mr-2" />
-                환경 조건
-              </h4>
-              <ul className="text-gray-600 space-y-1">
-                <li>• 충분한 조명 확보</li>
-                <li>• 주변 소음 최소화</li>
-                <li>• 안정된 자세 유지</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium text-eno-600 mb-2 flex items-center">
-                <Heart className="w-4 h-4 mr-2" />
-                측정 시간
-              </h4>
-              <ul className="text-gray-600 space-y-1">
-                <li>• 총 소요시간: 30-100초</li>
-                <li>• RPPG: 20-60초</li>
-                <li>• 음성: 10-40초</li>
-              </ul>
-            </div>
+        {/* Disclaimer */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-3">⚠️ 중요 안내사항</h3>
+          <div className="space-y-2 text-sm text-yellow-700">
+            <p>• 이 애플리케이션은 의학적 진단을 대체하지 않습니다.</p>
+            <p>• 측정 결과는 참고용이며, 건강상 문제가 있을 경우 전문의와 상담하세요.</p>
+            <p>• 개인정보는 서버에 저장되지 않으며, 측정 완료 후 즉시 삭제됩니다.</p>
+            <p>• 의료기기 인증을 받지 않은 소프트웨어입니다.</p>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center text-sm text-gray-500">
-            <p>© 2024 MKM Lab. All rights reserved.</p>
-            <p className="mt-1">엔오건강도우미는 의료 진단을 대체하지 않습니다.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 } 
