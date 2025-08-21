@@ -6,38 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@types/node": "24.3.0",
-    "@types/react": "19.1.10",
-    "@types/react-dom": "^18.2.18",
-    "autoprefixer": "^10.4.16",
-    "axios": "^1.6.2",
-<<<<<<< HEAD
-    "html5-qrcode": "^2.3.8",
-=======
-    "clsx": "^2.0.0",
-    "framer-motion": "^10.16.16",
-    "lucide-react": "^0.294.0",
     "next": "14.0.4",
-    "postcss": "^8.4.32",
     "react": "^18.2.0",
-    "react-audio-voice-recorder": "^2.1.4",
-    "react-dom": "^18.2.0",
-    "react-qr-reader": "^3.0.0-beta-1",
->>>>>>> cc17bd21ebec23ae8472e255a559b421cb47b61d
-    "react-webcam": "^7.2.0",
-    "recharts": "^2.8.0",
-    "tailwind-merge": "^2.2.0",
-    "tailwindcss": "^3.3.6",
-    "typescript": "5.9.2",
-    "zustand": "^4.4.7"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react-webcam": "^3.0.0",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "14.0.4"
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
   }
 }

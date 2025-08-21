@@ -1,0 +1,59 @@
+name: RPPG Accuracy Enhancement
+
+on:
+  workflow_dispatch:  # 수동 실행
+  schedule:
+    - cron: '0 2 * * *'  # 매일 새벽 2시 자동 실행
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/advanced_accuracy_training.py'
+      - 'backend/test_accuracy.py'
+      - 'backend/data/**'
+
+jobs:
+  rppg-accuracy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        
+    - name: Run RPPG accuracy training
+      run: |
+        cd backend
+        python advanced_accuracy_training.py
+        
+    - name: Test accuracy improvements
+      run: |
+        cd backend
+        python test_accuracy.py
+        
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: rppg-accuracy-results
+        path: |
+          backend/medical_grade_training_results.json
+          backend/accuracy_test_results.json
+          backend/training_progress.png
+          
+    - name: Commit results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add backend/medical_grade_training_results.json
+        git add backend/accuracy_test_results.json
+        git add backend/training_progress.png
+        git commit -m "Auto-update RPPG accuracy results" || exit 0
+        git push 

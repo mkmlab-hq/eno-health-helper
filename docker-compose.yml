@@ -1,45 +1,26 @@
 version: '3.8'
 
 services:
-  # Frontend (Next.js)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    networks:
-      - eno-network
-
-  # Backend (FastAPI)
+  # --- 백엔드 서비스 정의 (변경 없음) ---
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: ./backend
     ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://eno_user:eno_password@postgres:5432/eno_health
-      - REDIS_URL=redis://redis:6379
-      - MKM_CORE_AI_URL=http://mkm-core-ai:8001
+      - "8001:8000"
     volumes:
       - ./backend:/app
-      - ./logs:/app/logs
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # --- 프론트엔드 서비스 정의 (수정됨) ---
+  frontend:
+    # build 명령을 수정하여, frontend 폴더의 새로운 Dockerfile.nginx를 사용하도록 지정합니다.
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.nginx
+    ports:
+      # 로컬 PC의 3000번 포트를, 컨테이너 내부 Nginx의 80번 포트와 연결합니다.
+      - "3000:80"
     depends_on:
-      - postgres
-      - redis
-      - mkm-core-ai
-    networks:
-      - eno-network
+      - backend
 
   # PostgreSQL Database
   postgres:

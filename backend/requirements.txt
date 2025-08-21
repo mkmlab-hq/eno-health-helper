@@ -1,27 +1,9 @@
 # 기본 웹 프레임워크
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-<<<<<<< HEAD
 
 # 핵심 과학 라이브러리 (Windows 호환)
-numpy==1.24.3
-=======
-python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-sqlalchemy==2.0.23
-psycopg2-binary==2.9.9
-alembic==1.12.1
-pydantic==2.5.0
-pydantic-settings==2.1.0
-httpx==0.25.2
-python-dotenv==1.0.0
-redis==5.0.1
-celery==5.3.4
-opencv-python==4.8.1.78
-librosa==0.10.1
 numpy>=1.26.0
->>>>>>> cc17bd21ebec23ae8472e255a559b421cb47b61d
 scipy==1.11.4
 opencv-python==4.8.1.78
 
@@ -33,9 +15,22 @@ pandas==2.1.4
 
 # 웹 프레임워크 지원
 python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 pydantic==2.5.0
+pydantic-settings==2.1.0
+httpx==0.25.2
 
-# 개발 도구
+# 데이터베이스
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# 백그라운드 작업
+redis==5.0.1
+celery==5.3.4
+
+# 환경 설정
 python-dotenv==1.0.0
 
 # Google Cloud Storage (GCS 데이터 로더용)
