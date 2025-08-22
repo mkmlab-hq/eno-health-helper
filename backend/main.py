@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # --- 실제 분석기 import ---
 try:
     from app.services.real_rppg_analyzer import RealRPPGAnalyzer
-    from app.services.real_voice_analyzer import RealVoiceAnalyzer
+    from app.services.voice_analyzer import VoiceAnalyzer
     REAL_ANALYZERS_AVAILABLE = True
     logger.info("✅ 실제 분석기 모듈 로드 성공")
 except ImportError as e:
@@ -91,7 +91,7 @@ logger.info("CORS 미들웨어 추가 완료")
 # --- 실제 분석기 인스턴스 생성 ---
 if REAL_ANALYZERS_AVAILABLE:
     rppg_analyzer = RealRPPGAnalyzer()
-    voice_analyzer = RealVoiceAnalyzer()
+    voice_analyzer = VoiceAnalyzer()
     logger.info("✅ 실제 분석기 인스턴스 생성 완료")
 else:
     rppg_analyzer = None

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+// import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
 import { Camera, Mic, Activity, LogOut, Play, Pause, RotateCcw } from 'lucide-react';
 
 type MeasurementStep = 'start' | 'face' | 'voice' | 'analyzing' | 'complete';
@@ -33,20 +33,21 @@ export default function MeasurePage() {
   const [progress, setProgress] = useState(0);
   const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { currentUser, logout } = useAuth();
+  // const { currentUser, logout } = useAuth(); // 인증 체크 제거
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  // 로그아웃 함수 제거 (인증 없이 사용)
+  // const handleLogout = async () => {
+  //   try {
+  //     await logout();
+  //     router.push('/login');
+  //   } catch (error) {
+  //     console.error('Logout failed:', error);
+  //   }
+  // };
 
   const startFaceMeasurement = useCallback(async () => {
     try {
@@ -55,18 +56,17 @@ export default function MeasurePage() {
       const assignStream = () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play();
           setCurrentStep('face');
         } else if (retry < 10) {
           retry++;
           setTimeout(assignStream, 100);
-        } else {
-          setCurrentStep('face');
         }
       };
       assignStream();
     } catch (error) {
       console.error('Camera access failed:', error);
-      setCurrentStep('face');
+      setError('카메라 접근에 실패했습니다.');
     }
   }, []);
 
@@ -123,7 +123,7 @@ export default function MeasurePage() {
   }, [isRecording]);
 
   const performHealthAnalysis = async () => {
-    if (!faceData || !voiceData || !currentUser) {
+    if (!faceData || !voiceData) { // 인증 체크 제거
       console.error('Required data missing for analysis');
       return;
     }
@@ -146,7 +146,7 @@ export default function MeasurePage() {
       const formData = new FormData();
       formData.append('video_file', faceData, 'face_video.mp4');
       formData.append('audio_file', voiceData, 'voice_audio.wav');
-      formData.append('user_id', currentUser.uid);
+      // formData.append('user_id', currentUser.uid); // 인증 체크 제거
 
       // 백엔드 서버로 직접 요청
       const response = await fetch('http://localhost:8001/api/v1/measure/combined', {
@@ -199,18 +199,19 @@ export default function MeasurePage() {
     router.push('/result');
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl text-red-400 mb-4">접근 권한이 없습니다</h1>
-          <button onClick={() => router.push('/login')} className="btn-primary">
-            로그인하기
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // 인증 체크 제거
+  // if (!currentUser) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h1 className="text-2xl text-red-400 mb-4">접근 권한이 없습니다</h1>
+  //         <button onClick={() => router.push('/login')} className="btn-primary">
+  //           로그인하기
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
@@ -218,9 +219,9 @@ export default function MeasurePage() {
       <header className="glass-card m-4 p-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-orbitron font-bold neon-text">엔오건강도우미</h1>
-          <p className="text-gray-300 text-sm">안녕하세요, {currentUser.email}님</p>
+          <p className="text-gray-300 text-sm">안녕하세요, {/* {currentUser.email}님 */} 게스트님</p>
         </div>
-        <button onClick={handleLogout} className="btn-secondary flex items-center space-x-2">
+        <button onClick={() => router.push('/login')} className="btn-secondary flex items-center space-x-2">
           <LogOut className="w-4 h-4" />
           <span>로그아웃</span>
         </button>

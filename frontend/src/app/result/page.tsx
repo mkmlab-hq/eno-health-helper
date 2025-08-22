@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { Heart, Activity, TrendingUp, Save, Home, LogOut, CheckCircle } from 'lucide-react';
+// import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
+import { Heart, Activity, Mic, Save, LogOut, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface HealthMetrics {
   heartRate: number;
@@ -18,7 +18,7 @@ export default function ResultPage() {
   const [metrics, setMetrics] = useState<HealthMetrics | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { currentUser, logout } = useAuth();
+  // const { currentUser, logout } = useAuth(); // 인증 체크 제거
   const router = useRouter();
 
   useEffect(() => {
@@ -34,17 +34,11 @@ export default function ResultPage() {
     setMetrics(simulatedMetrics);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  // 로그아웃 함수 제거 (인증 없이 사용)
+  // const handleLogout = async () => { ... };
 
   const handleSaveResults = async () => {
-    if (!metrics || !currentUser) return;
+    // if (!metrics || !currentUser) return; // 인증 체크 제거
     
     setSaving(true);
     try {
@@ -73,18 +67,18 @@ export default function ResultPage() {
     }
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl text-red-400 mb-4">접근 권한이 없습니다</h1>
-          <button onClick={() => router.push('/login')} className="btn-primary">
-            로그인하기
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // if (!currentUser) { // 인증 체크 제거
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h1 className="text-2xl text-red-400 mb-4">접근 권한이 없습니다</h1>
+  //         <button onClick={() => router.push('/login')} className="btn-primary">
+  //           로그인하기
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (!metrics) {
     return (
@@ -103,14 +97,14 @@ export default function ResultPage() {
       <header className="glass-card m-4 p-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-orbitron font-bold neon-text">건강 측정 결과</h1>
-          <p className="text-gray-300 text-sm">안녕하세요, {currentUser.email}님</p>
+          <p className="text-gray-300 text-sm">안녕하세요, {/* currentUser.email */}님</p>
         </div>
         <div className="flex space-x-2">
           <button onClick={() => router.push('/measure')} className="btn-secondary flex items-center space-x-2">
             <Home className="w-4 h-4" />
             <span>홈</span>
           </button>
-          <button onClick={handleLogout} className="btn-secondary flex items-center space-x-2">
+          <button onClick={() => router.push('/login')} className="btn-secondary flex items-center space-x-2">
             <LogOut className="w-4 h-4" />
             <span>로그아웃</span>
           </button>

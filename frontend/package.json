@@ -12,6 +12,7 @@
     "deploy:netlify": "npm run build && netlify deploy --prod --dir=out"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
     "autoprefixer": "^10.4.21",
     "chart.js": "^4.5.0",
     "firebase": "^12.1.0",
