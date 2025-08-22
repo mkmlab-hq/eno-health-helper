@@ -121,33 +121,10 @@ def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGRe
                 data_points=result["data_points"]
             )
         else:
-            logger.info("🎭 시뮬레이션 RPPG 분석 사용")
-            # 시뮬레이션 모드
-            heart_rate = np.random.normal(72, 5)
-            heart_rate = max(60, min(100, heart_rate))
-            
-            hrv = np.random.normal(50, 15)
-            hrv = max(20, min(100, hrv))
-            
-            if heart_rate > 85 or hrv < 30:
-                stress_level = "높음"
-            elif heart_rate > 75 or hrv < 40:
-                stress_level = "보통"
-            else:
-                stress_level = "낮음"
-            
-            confidence = np.random.uniform(0.7, 0.95)
-            
-            return RPPGResult(
-                heart_rate=round(heart_rate, 1),
-                hrv=round(hrv, 1),
-                stress_level=stress_level,
-                confidence=round(confidence, 3),
-                processing_time=0.5,
-                analysis_method="simulation_fallback",
-                signal_quality="Unknown",
-                frame_count=frame_count,
-                data_points=frame_count
+            logger.error("❌ 실제 RPPG 분석기가 필요합니다. 시뮬레이션 모드는 지원하지 않습니다.")
+            raise HTTPException(
+                status_code=503, 
+                detail="실제 RPPG 분석기가 필요합니다. 시뮬레이션 모드는 허용되지 않습니다."
             )
         
     except Exception as e:
@@ -178,28 +155,10 @@ def analyze_voice_from_audio(audio_data: bytes, duration: float = 5.0) -> VoiceR
                 data_points=result["data_points"]
             )
         else:
-            logger.info("🎭 시뮬레이션 음성 분석 사용")
-            # 시뮬레이션 모드
-            f0 = np.random.normal(150, 30)
-            f0 = max(80, min(300, f0))
-            
-            jitter = np.random.uniform(0.01, 0.1)
-            shimmer = np.random.uniform(0.01, 0.15)
-            hnr = np.random.uniform(10, 25)
-            
-            confidence = np.random.uniform(0.75, 0.98)
-            
-            return VoiceResult(
-                f0=round(f0, 1),
-                jitter=round(jitter, 3),
-                shimmer=round(shimmer, 3),
-                hnr=round(hnr, 1),
-                confidence=round(confidence, 3),
-                processing_time=0.3,
-                analysis_method="simulation_fallback",
-                signal_quality="Unknown",
-                duration=duration,
-                data_points=int(duration * 44100)
+            logger.error("❌ 실제 음성 분석기가 필요합니다. 시뮬레이션 모드는 지원하지 않습니다.")
+            raise HTTPException(
+                status_code=503, 
+                detail="실제 음성 분석기가 필요합니다. 시뮬레이션 모드는 허용되지 않습니다."
             )
         
     except Exception as e:

@@ -1,24 +1,19 @@
-{
+﻿{
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
+      "src": "frontend/public/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "/frontend/public/$1"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://eno.no1kmedi.com/api",
     "NEXT_PUBLIC_APP_NAME": "엔오건강도우미",
-    "NEXT_PUBLIC_DOMAIN": "eno.no1kmedi.com"
+    "NEXT_PUBLIC_DOMAIN": "eno-health-helper.vercel.app"
   }
-} 
+}

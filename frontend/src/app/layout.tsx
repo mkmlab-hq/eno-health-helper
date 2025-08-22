@@ -1,21 +1,24 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from 'next'
+import { AuthProvider } from '@/context/AuthContext'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: '엔오건강도우미 - ENO Health Helper',
-  description: '엔오플렉스 건강기능식품 전용 동반 서비스',
-};
+  title: '엔오건강도우미 - AI 기반 건강 측정',
+  description: 'rPPG와 음성 분석을 통한 정확한 건강 측정 서비스',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: any;
+  children: React.ReactNode
 }) {
   return (
     <html lang="ko">
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
-  );
+  )
 } 

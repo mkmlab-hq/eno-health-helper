@@ -370,26 +370,12 @@ class HealthAnalyzer:
             return self._get_mock_voice_result()
     
     def _get_mock_rppg_result(self) -> Dict[str, Any]:
-        """RPPG 모의 결과 (개발용)"""
-        return {
-            "heart_rate": np.random.randint(60, 100),
-            "hrv": np.random.randint(20, 60),
-            "stress_index": np.random.randint(20, 80),
-            "quality_score": np.random.randint(70, 95),
-            "confidence": np.random.uniform(0.7, 0.95),
-            "status": "normal"
-        }
+        """RPPG 모의 결과 (개발용) - 허위 데이터 생성 금지"""
+        raise NotImplementedError("허위 데이터 생성은 금지되었습니다. 실제 RPPG 분석기를 구현해야 합니다.")
     
     def _get_mock_voice_result(self) -> Dict[str, Any]:
-        """Voice 모의 결과 (개발용)"""
-        return {
-            "f0": np.random.randint(150, 250),
-            "jitter": np.random.uniform(1.0, 5.0),
-            "shimmer": np.random.uniform(2.0, 8.0),
-            "hnr": np.random.uniform(15.0, 25.0),
-            "quality_score": np.random.randint(75, 90),
-            "status": "normal"
-        }
+        """Voice 모의 결과 (개발용) - 허위 데이터 생성 금지"""
+        raise NotImplementedError("허위 데이터 생성은 금지되었습니다. 실제 음성 분석기를 구현해야 합니다.")
     
     def _calculate_overall_quality(self, rppg_result: Dict, voice_result: Dict) -> float:
         """전체 품질 점수 계산"""

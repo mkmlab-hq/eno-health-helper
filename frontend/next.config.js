@@ -1,33 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 기본 설정만 유지
-  experimental: {
-    // 실험적 기능 비활성화
-  },
-  
-  // 이미지 도메인 설정
+  // Next.js 14에서는 appDir이 기본적으로 활성화됨
+  // experimental.appDir 옵션 제거
+  output: 'export', // 정적 내보내기 (PWA 배포용)
+  trailingSlash: true, // 정적 호스팅 호환성
   images: {
-    domains: ['localhost'],
-  },
-  
-  // 보안 헤더 설정
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-        ],
-      },
-    ];
-  },
-};
+    unoptimized: true // 정적 내보내기 시 이미지 최적화 비활성화
+  }
+}
 
-module.exports = nextConfig; 
+module.exports = nextConfig 

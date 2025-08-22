@@ -1,0 +1,17 @@
+# Firebase 우선 연동 백엔드 의존성
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+firebase-admin==6.2.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# 기본 분석 라이브러리
+numpy==1.24.3
+opencv-python==4.8.1.78
+librosa==0.10.1
+scipy==1.11.3
+
+# 로깅 및 유틸리티
+pydantic==2.4.2 
