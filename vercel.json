@@ -1,19 +1,27 @@
-﻿{
+{
   "version": 2,
   "builds": [
     {
-      "src": "frontend/public/**/*",
+      "src": "deploy-ready/**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/",
+      "dest": "/deploy-ready/index.html"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/deploy-ready/manifest.json"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/deploy-ready/icons/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/frontend/public/$1"
+      "dest": "/deploy-ready/$1"
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_APP_NAME": "엔오건강도우미",
-    "NEXT_PUBLIC_DOMAIN": "eno-health-helper.vercel.app"
-  }
-}
+  ]
+} 

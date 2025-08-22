@@ -3,173 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>엔오건강도우미 - PWA 데모</title>
-    <meta name="description" content="따뜻한 기술, 직관적인 건강 - AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스">
-    
-    <!-- PWA 메타 태그 -->
-    <meta name="theme-color" content="#0ea5e9">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="엔오건강도우미">
-    
-    <!-- PWA 매니페스트 -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- PWA 아이콘 -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    
-    <!-- Tailwind CSS CDN -->
+    <title>엔오건강도우미 - 건강 측정 v5 (UX 개선)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: radial-gradient(ellipse at bottom, #1e3a8a 0%, #020617 70%);
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
         
-        .font-orbitron { font-family: 'Orbitron', monospace; }
-        .neon-text { 
-            text-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9, 0 0 30px #0ea5e9;
-            color: #0ea5e9;
+        .screen {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem; /* 32px */
+            pointer-events: none; 
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
+        .screen.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
-        .animate-pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+        .glassmorphism {
+            background: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.2); /* sky-400/20 */
         }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2), 0 0 30px rgba(56, 189, 248, 0.15);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .face-outline-gradient {
+            stroke: url(#face-gradient);
+            stroke-dasharray: 1000;
+            animation: dash 5s linear infinite;
+        }
+        @keyframes dash {
+            from { stroke-dashoffset: 2000; }
+            to { stroke-dashoffset: 0; }
+        }
+        .scan-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #0ea5e9, transparent);
+            box-shadow: 0 0 10px #0ea5e9;
+            animation: scan 4s ease-in-out infinite;
+        }
+        @keyframes scan {
+            0%, 100% { top: 10%; }
+            50% { top: 90%; }
+        }
+        .checkmark__circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark__check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
-    <!-- Hero Section -->
-    <div class="relative overflow-hidden">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-            <div class="text-center">
-                <h1 class="text-6xl md:text-7xl font-orbitron font-bold neon-text mb-6 animate-fade-in">
-                    엔오건강도우미
-                </h1>
-                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-fade-in">
-                    <span class="text-cyan-400 font-medium">따뜻한 기술, 직관적인 건강</span><br>
-                    AI 기반 rPPG와 음성 분석을 통해 정확한 건강 상태를 측정하고 모니터링하세요
-                </p>
-                
-                <!-- PWA 설치 버튼 -->
-                <div class="mb-8">
-                    <button id="installBtn" class="btn-primary text-xl px-8 py-4 hidden">
-                        📱 앱 설치하기
-                    </button>
-                </div>
-                
-                <!-- 데모 링크 -->
-                <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-                    <a href="/measure" class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        🎯 측정 시작하기
-                    </a>
-                    <a href="/result" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        📊 결과 보기
-                    </a>
-                </div>
+<body class="text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md mx-auto glassmorphism rounded-2xl shadow-2xl neon-glow text-center relative overflow-hidden min-h-[650px]">
+
+        <!-- 1. 시작 화면 -->
+        <div id="welcome-screen" class="screen active flex-grow justify-center items-center">
+            <div class="mb-6">
+                <svg class="w-24 h-24 text-sky-400 mx-auto" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#38bdf8; stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#0ea5e9; stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="url(#icon-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M32 18V32L42 37" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                </svg>
             </div>
+            <h1 class="text-3xl font-bold text-white mb-3 font-orbitron">엔오건강도우미</h1>
+            <p class="text-gray-300 mb-8">MKM Lab의 AI 기술로 당신의 건강을 측정합니다.</p>
+            <div class="text-left text-sm text-gray-400 bg-slate-800/50 p-4 rounded-lg mb-10">
+                <p class="font-bold text-gray-200 mb-2">측정 안내:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li>총 35초 동안 진행됩니다.</li>
+                    <li><strong class="text-sky-300">30초 얼굴 인식:</strong> 카메라로 심박수, 스트레스 등 측정</li>
+                    <li><strong class="text-sky-300">5초 음성 분석:</strong> 마이크로 목소리 안정성 측정</li>
+                    <li>정확한 분석을 위해 조용한 환경을 권장합니다.</li>
+                </ul>
+            </div>
+            <button id="start-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/30">
+                측정 시작하기
+            </button>
         </div>
 
-        <!-- Floating Elements -->
-        <div class="absolute top-20 left-10 w-20 h-20 bg-cyan-500/20 rounded-full animate-pulse-slow"></div>
-        <div class="absolute top-40 right-20 w-16 h-16 bg-blue-500/20 rounded-full animate-pulse-slow delay-1000"></div>
-        <div class="absolute bottom-40 left-20 w-12 h-12 bg-cyan-500/30 rounded-full animate-pulse-slow delay-2000"></div>
-    </div>
+        <!-- 2. 얼굴 측정 화면 -->
+        <div id="face-screen" class="screen flex-grow justify-center items-center">
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">얼굴 인식 중...</h2>
+            <p class="text-gray-300 mb-8">화면의 가이드라인에 얼굴을 맞춰주세요.</p>
+            <div class="relative w-64 h-80 bg-slate-900/50 rounded-lg flex items-center justify-center mb-8 overflow-hidden">
+                <div class="absolute inset-0 bg-black opacity-50"></div>
+                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                        <linearGradient id="face-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#0ea5e9;"/>
+                            <stop offset="100%" style="stop-color:#67e8f9;"/>
+                        </linearGradient>
+                    </defs>
+                    <ellipse class="face-outline-gradient" cx="100" cy="125" rx="80" ry="110" stroke-width="3" fill="none"/>
+                </svg>
+                <div class="scan-line"></div>
+                <div class="absolute top-4 right-4">
+                    <svg class="w-16 h-16" viewBox="0 0 120 120">
+                        <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                        <circle id="face-progress-circle" class="progress-ring__circle text-sky-400" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                    </svg>
+                    <span id="face-timer-text" class="absolute inset-0 flex items-center justify-center text-xl font-bold font-orbitron">30</span>
+                </div>
+            </div>
+            <p class="text-sm text-sky-300 animate-pulse">정확한 측정을 위해 움직이지 마세요.</p>
+        </div>
 
-    <!-- Features Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 class="text-4xl font-orbitron font-bold neon-text text-center mb-16">
-            핵심 기능
-        </h2>
+        <!-- 2.5. 전환 화면 -->
+        <div id="transition-screen" class="screen flex-grow justify-center items-center">
+            <div class="mb-8">
+                <svg class="checkmark w-24 h-24 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" stroke="#0ea5e9" stroke-width="4"/>
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" stroke="#0ea5e9" stroke-width="5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">얼굴 인식 완료</h2>
+            <p class="text-gray-300">다음은 음성 분석을 시작합니다.</p>
+        </div>
+
+        <!-- 3. 음성 측정 화면 -->
+        <div id="voice-screen" class="screen flex-grow justify-center items-center">
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">음성 분석 중...</h2>
+            <p class="text-gray-300 mb-8">5초간 '아-' 소리를 편안하게 내주세요.</p>
+            <div class="w-64 h-80 bg-slate-900/50 rounded-lg flex items-center justify-center mb-8">
+                <canvas id="voice-canvas" class="w-full h-full"></canvas>
+                <div class="absolute top-4 right-4 text-xl font-bold font-orbitron bg-slate-900/50 px-3 py-1 rounded-md">
+                    <span id="voice-timer-text">5</span>s
+                </div>
+            </div>
+            <p class="text-sm text-sky-300 animate-pulse">마이크에 가깝게 발성해주세요.</p>
+        </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- rPPG 측정 -->
-            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
-                <div class="w-20 h-20 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-6">
-                    <span class="text-4xl">❤️</span>
-                </div>
-                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
-                    rPPG 건강 측정
-                </h3>
-                <p class="text-gray-300 mb-6">
-                    카메라를 통해 얼굴의 미세한 색상 변화를 분석하여 심박수, 심박변이도, 스트레스 수준을 정확하게 측정합니다
-                </p>
-                <div class="text-cyan-400 font-medium">
-                    → 비접촉 측정
+        <!-- 4. 분석 중 화면 -->
+        <div id="analyzing-screen" class="screen flex-grow justify-center items-center">
+             <div class="animate-spin rounded-full h-24 w-24 border-b-4 border-sky-400 mb-8"></div>
+             <h2 class="text-2xl font-bold mb-4 font-orbitron">데이터 분석 중</h2>
+             <p class="text-gray-300">당신의 생체 신호 속 의미를 찾고 있습니다.</p>
+        </div>
+
+        <!-- 5. 상세 결과 화면 -->
+        <div id="result-screen" class="screen flex-grow justify-center items-start text-left overflow-y-auto">
+            <h2 class="text-3xl font-bold mb-6 text-sky-300 font-orbitron">측정 결과</h2>
+            
+            <!-- 종합 점수 -->
+            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-6">
+                <div>
+                    <p class="text-sm text-gray-400">종합 건강 활력 점수</p>
+                    <p class="text-4xl font-bold text-white font-orbitron">82 <span class="text-xl font-normal text-gray-300">점</span></p>
                 </div>
             </div>
 
-            <!-- 음성 분석 -->
-            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
-                <div class="w-20 h-20 mx-auto bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
-                    <span class="text-4xl">🎤</span>
-                </div>
-                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
-                    음성 품질 분석
-                </h3>
-                <p class="text-gray-300 mb-6">
-                    Jitter, Shimmer 등 음성 지표를 통한 건강 상태 평가 및 스트레스 수준 분석
-                </p>
-                <div class="text-cyan-400 font-medium">
-                    → 음성 기반 진단
+            <!-- rPPG 건강 지표 -->
+            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-6">
+                <div class="space-y-4">
+                    <p class="font-bold text-gray-200 text-lg">❤️ 심혈관 건강 지표 (rPPG 분석)</p>
+                    
+                    <!-- 기본 심혈관 지표 -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">평균 심박수 (HR)</span>
+                            <span class="font-bold text-white">68 bpm</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">심박 변이도 (HRV)</span>
+                            <span class="font-bold text-green-400">55 ms (안정)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">스트레스 수준</span>
+                            <span class="font-bold text-green-400">낮음</span>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-600 my-3">
+
+                    <!-- 확장 심혈관 지표 -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">혈압 추정 (수축기/이완기)</span>
+                            <span class="font-bold text-white">118/76 mmHg</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">산소포화도 (SpO2)</span>
+                            <span class="font-bold text-green-400">98% (정상)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">혈관 탄력성</span>
+                            <span class="font-bold text-green-400">양호</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">피로도 수준</span>
+                            <span class="font-bold text-yellow-400">보통</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- AI 분석 -->
-            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
-                <div class="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-6">
-                    <span class="text-4xl">🤖</span>
-                </div>
-                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
-                    AI 기반 분석
-                </h3>
-                <p class="text-gray-300 mb-6">
-                    딥러닝 알고리즘을 통한 정확한 건강 지표 계산 및 복용 전후 비교 분석
-                </p>
-                <div class="text-cyan-400 font-medium">
-                    → 지능형 진단
+            <!-- 음성 건강 지표 -->
+            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-6">
+                <div class="space-y-4">
+                    <p class="font-bold text-gray-200 text-lg">🎙️ 음성 건강 지표 (음성 분석)</p>
+                    
+                    <!-- 기본 음성 지표 -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">기본 주파수 (F0)</span>
+                            <span class="font-bold text-white">130 Hz</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">음성 안정성 평가</span>
+                            <span class="font-bold text-green-400">매우 안정</span>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-600 my-3">
+
+                    <!-- 상세 음성 지표 -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">Jitter (주파수 변동)</span>
+                            <span class="font-bold text-green-400">0.34% (정상)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">Shimmer (진폭 변동)</span>
+                            <span class="font-bold text-green-400">2.1% (안정)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">목소리 피로도</span>
+                            <span class="font-bold text-green-400">낮음</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">호흡 안정성</span>
+                            <span class="font-bold text-green-400">양호</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">발성 효율성</span>
+                            <span class="font-bold text-white">85%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- 종합 건강 권장사항 -->
+            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-8">
+                <p class="font-bold text-gray-200 text-lg">💡 건강 권장사항</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-start space-x-2">
+                        <span class="text-green-400 mt-1">✓</span>
+                        <span class="text-gray-300">심혈관 건강 상태가 양호합니다.</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-green-400 mt-1">✓</span>
+                        <span class="text-gray-300">음성 건강 지표가 정상 범위입니다.</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-yellow-400 mt-1">⚠</span>
+                        <span class="text-gray-300">피로도가 다소 높으니 충분한 휴식을 권장합니다.</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-blue-400 mt-1">ℹ</span>
+                        <span class="text-gray-300">정기적인 건강 측정으로 변화를 모니터링하세요.</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="save-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all">
+                결과 저장하기
+            </button>
         </div>
     </div>
 
-    <!-- PWA 설치 스크립트 -->
-    <script>
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-        
-        document.getElementById('installBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('PWA 설치됨');
-                }
-                deferredPrompt = null;
-                document.getElementById('installBtn').classList.add('hidden');
+<script>
+    const screens = {
+        welcome: document.getElementById('welcome-screen'),
+        face: document.getElementById('face-screen'),
+        transition: document.getElementById('transition-screen'), // 전환 화면 추가
+        voice: document.getElementById('voice-screen'),
+        analyzing: document.getElementById('analyzing-screen'),
+        result: document.getElementById('result-screen')
+    };
+
+    const startBtn = document.getElementById('start-btn');
+    const faceProgressCircle = document.getElementById('face-progress-circle');
+    const faceTimerText = document.getElementById('face-timer-text');
+    const voiceTimerText = document.getElementById('voice-timer-text');
+    
+    const FACE_DURATION = 30;
+    const VOICE_DURATION = 5;
+    const TRANSITION_DURATION = 2500; // 2.5초
+    const ANALYSIS_DURATION = 3000;
+
+    const radius = faceProgressCircle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    faceProgressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+    faceProgressCircle.style.strokeDashoffset = circumference;
+
+    function setProgress(percent) {
+        const offset = circumference - percent / 100 * circumference;
+        faceProgressCircle.style.strokeDashoffset = offset;
+    }
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    function startFaceMeasurement() {
+        showScreen('face');
+        let timeLeft = FACE_DURATION;
+        faceTimerText.textContent = timeLeft;
+        setProgress(0);
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            faceTimerText.textContent = timeLeft;
+            setProgress(((FACE_DURATION - timeLeft) / FACE_DURATION) * 100);
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                // 얼굴 측정 완료 후 전환 화면 표시
+                showScreen('transition');
+                setTimeout(startVoiceMeasurement, TRANSITION_DURATION);
             }
-        });
+        }, 1000);
+    }
+
+    function startVoiceMeasurement() {
+        showScreen('voice');
+        let timeLeft = VOICE_DURATION;
+        voiceTimerText.textContent = timeLeft;
         
-        // PWA 설치 후 이벤트
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA가 성공적으로 설치되었습니다!');
-        });
-    </script>
+        const canvas = document.getElementById('voice-canvas');
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+        
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let time = 0;
+        function drawWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#67e8f9');
+            gradient.addColorStop(0.5, '#0ea5e9');
+            gradient.addColorStop(1, '#67e8f9');
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+
+            for (let x = 0; x < canvas.width; x++) {
+                const y = canvas.height / 2 + Math.sin(x * 0.05 + time) * 30 * (Math.sin(time * 0.5) + 1.5);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            time += 0.1;
+            animationFrameId = requestAnimationFrame(drawWave);
+        }
+        drawWave();
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            voiceTimerText.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                cancelAnimationFrame(animationFrameId);
+                window.removeEventListener('resize', resizeCanvas);
+                startAnalysis();
+            }
+        }, 1000);
+    }
+    
+    function startAnalysis() {
+        showScreen('analyzing');
+        setTimeout(() => {
+            showScreen('result');
+        }, ANALYSIS_DURATION);
+    }
+
+    startBtn.addEventListener('click', () => {
+        startFaceMeasurement();
+    });
+
+</script>
 </body>
 </html> 
