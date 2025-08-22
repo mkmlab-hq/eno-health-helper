@@ -2,6 +2,36 @@
 
 AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스
 
+## 🚀 **즉시 배포 및 확인 방법**
+
+### **GitHub Pages 설정 (필수!)**
+
+GitHub Pages가 작동하지 않는 경우 다음 단계를 따라 설정하세요:
+
+1. **GitHub 저장소 설정**:
+   - [GitHub 저장소](https://github.com/mkmlab-hq/eno-health-helper) 접속
+   - Settings → Pages 클릭
+   - Source를 "Deploy from a branch"로 설정
+   - Branch를 "main"으로 설정
+   - Folder를 "/ (root)"로 설정
+   - Save 클릭
+
+2. **대기 시간**: 설정 후 5-10분 대기
+
+3. **배포 확인**: `https://mkmlab-hq.github.io/eno-health-helper` 접속
+
+### **대안 배포 방법 (더 빠름!)**
+
+#### **방법 1: Netlify (2분 - 추천!)**
+1. [Netlify](https://netlify.com) 접속
+2. `deploy-ready` 폴더를 Netlify에 드래그 앤 드롭
+3. 자동으로 배포 완료!
+
+#### **방법 2: Vercel (5분)**
+1. [Vercel](https://vercel.com) 접속
+2. GitHub 저장소 연결
+3. 자동으로 배포 완료!
+
 ## 🚀 주요 기능
 
 - **rPPG 건강 측정**: 카메라를 통한 비접촉 심박수, 심박변이도, 스트레스 수준 측정
@@ -37,19 +67,19 @@ AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스
 
 ## 🚀 빠른 시작
 
-### 1. 저장소 클론
+### **1. 저장소 클론**
 ```bash
-git clone https://github.com/your-username/eno-health-helper.git
+git clone https://github.com/mkmlab-hq/eno-health-helper.git
 cd eno-health-helper
 ```
 
-### 2. 의존성 설치
+### **2. 의존성 설치**
 ```bash
 cd frontend
 npm install
 ```
 
-### 3. Firebase 설정
+### **3. Firebase 설정**
 1. [Firebase Console](https://console.firebase.google.com)에서 새 프로젝트 생성
 2. 웹 앱 추가 및 설정 값 복사
 3. `.env.local` 파일 생성 및 Firebase 설정 값 입력:
@@ -63,7 +93,7 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
-### 4. 개발 서버 실행
+### **4. 개발 서버 실행**
 ```bash
 npm run dev
 ```
@@ -175,9 +205,9 @@ docker run -p 3000:3000 eno-health-helper
 
 ## 📞 지원
 
-- **이슈 리포트**: [GitHub Issues](https://github.com/your-username/eno-health-helper/issues)
+- **이슈 리포트**: [GitHub Issues](https://github.com/mkmlab-hq/eno-health-helper/issues)
 - **문의**: your-email@example.com
-- **문서**: [Wiki](https://github.com/your-username/eno-health-helper/wiki)
+- **문서**: [Wiki](https://github.com/mkmlab-hq/eno-health-helper/wiki)
 
 ## 🙏 감사의 말
 
