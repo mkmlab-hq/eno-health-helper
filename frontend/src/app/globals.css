@@ -32,6 +32,12 @@
     @apply bg-glass border border-neon-cyan text-neon-cyan font-medium py-2 px-4 rounded-lg
            hover:bg-neon-cyan hover:text-gray-900 transition-all duration-300;
   }
+  
+  .btn-tertiary {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg 
+           hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 
+           shadow-lg hover:shadow-purple-500/50;
+  }
 }
 
 @layer utilities {

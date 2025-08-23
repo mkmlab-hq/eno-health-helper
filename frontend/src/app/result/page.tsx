@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
-import { Heart, Activity, Mic, Save, LogOut, TrendingUp, TrendingDown } from 'lucide-react';
+import { Heart, Activity, Mic, Save, LogOut, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
 
 interface HealthMetrics {
   heartRate: number;
@@ -100,8 +100,7 @@ export default function ResultPage() {
           <p className="text-gray-300 text-sm">안녕하세요, {/* currentUser.email */}님</p>
         </div>
         <div className="flex space-x-2">
-          <button onClick={() => router.push('/measure')} className="btn-secondary flex items-center space-x-2">
-            <Home className="w-4 h-4" />
+          <button onClick={() => router.push('/')} className="btn-secondary flex items-center space-x-2">
             <span>홈</span>
           </button>
           <button onClick={() => router.push('/login')} className="btn-secondary flex items-center space-x-2">

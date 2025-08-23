@@ -64,6 +64,12 @@ export default function Home() {
                 <LogIn className="w-6 h-6 mr-2 inline" />
                 로그인
               </button>
+              <button
+                onClick={() => router.push('/fusion-analysis')}
+                className="btn-tertiary text-xl px-8 py-4"
+              >
+                🧬 융합 분석 데모
+              </button>
             </div>
           </div>
         </div>
@@ -95,6 +101,23 @@ export default function Home() {
             <div className="text-neon-cyan font-medium">
               <ArrowRight className="w-5 h-5 inline mr-2" />
               비접촉 측정
+            </div>
+          </div>
+
+          {/* 융합 분석 */}
+          <div className="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
+            <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-6">
+              <div className="text-4xl">🧬</div>
+            </div>
+            <h3 className="text-2xl font-orbitron font-bold text-neon-cyan mb-4">
+              AI 융합 분석
+            </h3>
+            <p className="text-gray-300 mb-6">
+              rPPG와 음성을 동시에 분석하여 4대 디지털 기질을 정확하게 진단하는 혁신적인 AI 융합 기술
+            </p>
+            <div className="text-neon-cyan font-medium">
+              <ArrowRight className="w-5 h-5 inline mr-2" />
+              멀티모달 분석
             </div>
           </div>
 

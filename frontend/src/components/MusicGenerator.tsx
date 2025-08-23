@@ -102,11 +102,11 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
    * 감정 상태에 따른 음악 스타일 설명
    */
   const getMusicStyleDescription = () => {
-    const { stressLevel, heartRate, hrv } = emotionData;
+    const { emotion, intensity } = emotionData;
     
-    if (stressLevel === 'high' || heartRate > 85 || hrv < 30) {
+    if (emotion === 'stressed' || intensity > 0.8) {
       return '차분하고 명상적인 음악으로 긴장을 풀어드립니다.';
-    } else if (stressLevel === 'medium' || heartRate > 75 || hrv < 40) {
+    } else if (emotion === 'anxious' || intensity > 0.6) {
       return '부드럽고 편안한 팝 음악으로 마음을 진정시킵니다.';
     } else {
       return '평화롭고 아름다운 앰비언트 음악으로 평온함을 유지합니다.';
@@ -117,12 +117,12 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
    * 권장 BPM 계산
    */
   const getRecommendedBPM = () => {
-    if (emotionData.heartRate > 85) {
-      return Math.max(60, emotionData.heartRate - 25);
-    } else if (emotionData.heartRate > 75) {
-      return Math.max(65, emotionData.heartRate - 15);
+    if (emotionData.intensity > 0.8) {
+      return 60;
+    } else if (emotionData.intensity > 0.6) {
+      return 70;
     } else {
-      return Math.max(70, emotionData.heartRate - 5);
+      return 80;
     }
   };
 
@@ -144,26 +144,26 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-glass-dark p-3 rounded-lg">
             <Heart className="w-6 h-6 text-red-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">심박수</p>
+            <p className="text-sm text-gray-300">감정 상태</p>
             <p className="text-lg font-bold text-neon-cyan">
-              {emotionData.heartRate} BPM
+              {emotionData.emotion === 'stressed' ? '긴장' : 
+               emotionData.emotion === 'anxious' ? '불안' : '평온'}
             </p>
           </div>
           
           <div className="bg-glass-dark p-3 rounded-lg">
             <Brain className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">스트레스</p>
+            <p className="text-sm text-gray-300">강도</p>
             <p className="text-lg font-bold text-neon-cyan">
-              {emotionData.stressLevel === 'high' ? '높음' : 
-               emotionData.stressLevel === 'medium' ? '보통' : '낮음'}
+              {Math.round(emotionData.intensity * 100)}%
             </p>
           </div>
           
           <div className="bg-glass-dark p-3 rounded-lg">
             <div className="w-6 h-6 bg-green-400 rounded-full mx-auto mb-2" />
-            <p className="text-sm text-gray-300">HRV</p>
+            <p className="text-sm text-gray-300">시간</p>
             <p className="text-lg font-bold text-neon-cyan">
-              {emotionData.hrv}
+              {new Date(emotionData.timestamp).toLocaleTimeString()}
             </p>
           </div>
         </div>

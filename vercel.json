@@ -1,27 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "deploy-ready/**/*",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/deploy-ready/index.html"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/deploy-ready/manifest.json"
-    },
-    {
-      "src": "/icons/(.*)",
-      "dest": "/deploy-ready/icons/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/deploy-ready/$1"
-    }
-  ]
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "cd frontend && npm install",
+  "framework": "nextjs"
 } 

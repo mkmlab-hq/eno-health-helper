@@ -1,4 +1,17 @@
 {
+  "name": "eno-health-helper",
+  "version": "1.0.0",
+  "description": "AI-powered health monitoring application with rPPG and voice analysis",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev",
+    "start": "cd frontend && npm start"
+  },
   "dependencies": {
+    "next": "^14.2.32"
+  },
+  "devDependencies": {
+    "next": "^14.2.32"
   }
 }

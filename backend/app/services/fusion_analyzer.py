@@ -277,168 +277,223 @@ class AdvancedFusionAnalyzer:
         return advanced_features
     
     def _fuse_features(self, rppg_features: np.ndarray, voice_features: np.ndarray) -> np.ndarray:
-        """특징 융합"""
+        """rPPG와 음성 특징을 융합"""
         try:
-            # 특징 결합
-            combined_features = np.concatenate([rppg_features, voice_features])
+            # 특징 차원 맞추기
+            if len(rppg_features) < 10:
+                rppg_features = np.pad(rppg_features, (0, 10 - len(rppg_features)), 'constant')
+            if len(voice_features) < 8:
+                voice_features = np.pad(voice_features, (0, 8 - len(voice_features)), 'constant')
             
-            # 특징 정규화
-            if self.scaler is not None:
-                combined_features = combined_features.reshape(1, -1)
-                combined_features = self.scaler.fit_transform(combined_features)
-                combined_features = combined_features.flatten()
+            # 가중치 기반 융합
+            fused = np.concatenate([
+                rppg_features * self.rppg_weight,
+                voice_features * self.voice_weight
+            ])
             
-            return combined_features
+            # 정규화
+            if len(fused) > 0:
+                fused = (fused - np.mean(fused)) / (np.std(fused) + 1e-8)
+            
+            return fused
             
         except Exception as e:
             logger.error(f"특징 융합 중 오류: {e}")
-            return np.zeros(18, dtype=np.float32)  # rPPG(10) + 음성(8)
+            return np.zeros(18, dtype=np.float32)
     
     def _perform_advanced_fusion(self, fused_features: np.ndarray) -> Dict[str, Any]:
         """고급 융합 분석 수행"""
-        fusion_results = {
-            "fusion_score": 0.0,
-            "health_assessment": "unknown",
-            "risk_factors": [],
-            "recommendations": [],
-            "confidence_level": "low"
-        }
-        
         try:
-            # 융합 점수 계산
-            if len(fused_features) > 0:
-                # 가중 평균 기반 점수
-                fusion_results["fusion_score"] = np.mean(fused_features) * 100
-                
-                # 건강 상태 평가
-                if fusion_results["fusion_score"] >= 80:
-                    fusion_results["health_assessment"] = "excellent"
-                    fusion_results["confidence_level"] = "high"
-                elif fusion_results["fusion_score"] >= 60:
-                    fusion_results["health_assessment"] = "good"
-                    fusion_results["confidence_level"] = "medium"
-                elif fusion_results["fusion_score"] >= 40:
-                    fusion_results["health_assessment"] = "fair"
-                    fusion_results["confidence_level"] = "medium"
-                else:
-                    fusion_results["health_assessment"] = "poor"
-                    fusion_results["confidence_level"] = "low"
-                
-                # 위험 요인 분석
-                fusion_results["risk_factors"] = self._analyze_risk_factors(fused_features)
-                
-                # 개인화 권장사항
-                fusion_results["recommendations"] = self._generate_recommendations(
-                    fusion_results["health_assessment"],
-                    fusion_results["risk_factors"]
-                )
+            if self.fusion_model is None:
+                logger.warning("융합 모델이 초기화되지 않음")
+                return self._get_baseline_result()
+            
+            # 특징을 2D 배열로 변환 (sklearn 요구사항)
+            features_2d = fused_features.reshape(1, -1)
+            
+            # 모델 예측
+            prediction = self.fusion_model.predict(features_2d)[0]
+            
+            # 건강 상태 평가
+            health_assessment = self._assess_health_status(prediction)
+            
+            # 위험 요인 식별
+            risk_factors = self._identify_risk_factors(fused_features)
+            
+            # 신뢰도 계산
+            confidence_level = self._calculate_fusion_confidence(fused_features)
+            
+            return {
+                "fusion_score": float(prediction),
+                "health_assessment": health_assessment,
+                "risk_factors": risk_factors,
+                "confidence_level": confidence_level,
+                "feature_importance": self._get_feature_importance(),
+                "fusion_algorithm": "random_forest_ensemble"
+            }
             
         except Exception as e:
             logger.error(f"고급 융합 분석 중 오류: {e}")
-        
-        return fusion_results
+            return self._get_baseline_result()
     
-    def _analyze_risk_factors(self, features: np.ndarray) -> List[str]:
-        """위험 요인 분석"""
+    def _assess_health_status(self, score: float) -> str:
+        """건강 상태 평가"""
+        if score >= 0.8:
+            return "excellent"
+        elif score >= 0.6:
+            return "good"
+        elif score >= 0.4:
+            return "fair"
+        elif score >= 0.2:
+            return "poor"
+        else:
+            return "critical"
+    
+    def _identify_risk_factors(self, features: np.ndarray) -> List[str]:
+        """위험 요인 식별"""
         risk_factors = []
         
         try:
-            # 특징 기반 위험 요인 식별
+            # rPPG 관련 위험 요인 (첫 10개 특징)
+            if len(features) >= 10:
+                hr_features = features[:10]
+                
+                # 심박수 관련 위험
+                if hr_features[0] > 100:  # 첫 번째 특징이 심박수
+                    risk_factors.append("심박수 증가")
+                if hr_features[1] > 50:  # HRV 관련
+                    risk_factors.append("심박변이도 증가")
+            
+            # 음성 관련 위험 요인 (나머지 8개 특징)
             if len(features) >= 18:
-                rppg_features = features[:10]
-                voice_features = features[10:]
+                voice_features = features[10:18]
                 
-                # rPPG 위험 요인
-                if np.mean(rppg_features) < 0.3:
-                    risk_factors.append("심혈관 기능 저하 가능성")
-                
-                # 음성 위험 요인
-                if np.mean(voice_features) < 0.4:
-                    risk_factors.append("음성 기능 저하 가능성")
-                
-                # 전반적 위험
-                if np.mean(features) < 0.5:
-                    risk_factors.append("전반적 건강 상태 주의 필요")
+                # Jitter 관련 위험
+                if voice_features[1] > 2.0:  # Jitter
+                    risk_factors.append("음성 떨림 증가")
+                if voice_features[2] > 3.0:  # Shimmer
+                    risk_factors.append("음성 크기 변화")
             
         except Exception as e:
-            logger.warning(f"위험 요인 분석 중 오류: {e}")
+            logger.warning(f"위험 요인 식별 중 오류: {e}")
         
         return risk_factors
     
-    def _generate_recommendations(self, health_assessment: str, risk_factors: List[str]) -> List[str]:
-        """개인화 권장사항 생성"""
-        recommendations = []
-        
+    def _calculate_fusion_confidence(self, features: np.ndarray) -> str:
+        """융합 신뢰도 계산"""
         try:
-            # 건강 상태별 기본 권장사항
-            if health_assessment == "excellent":
-                recommendations.append("현재 건강 상태를 유지하세요")
-                recommendations.append("정기적인 건강 체크를 계속하세요")
-            elif health_assessment == "good":
-                recommendations.append("건강한 생활습관을 유지하세요")
-                recommendations.append("약간의 운동을 추가하는 것을 고려하세요")
-            elif health_assessment == "fair":
-                recommendations.append("생활습관 개선이 필요합니다")
-                recommendations.append("의료진과 상담을 권장합니다")
-            elif health_assessment == "poor":
-                recommendations.append("즉시 의료진과 상담하세요")
-                recommendations.append("생활습관 전면 점검이 필요합니다")
+            # 특징의 표준편차가 낮을수록 신뢰도 높음
+            feature_std = np.std(features)
             
-            # 위험 요인별 구체적 권장사항
-            for risk in risk_factors:
-                if "심혈관" in risk:
-                    recommendations.append("심혈관 건강을 위한 유산소 운동을 시작하세요")
-                elif "음성" in risk:
-                    recommendations.append("목 건강을 위한 음성 휴식과 보습을 권장합니다")
-                elif "전반적" in risk:
-                    recommendations.append("균형 잡힌 식단과 충분한 휴식을 취하세요")
+            if feature_std < 0.1:
+                return "very_high"
+            elif feature_std < 0.3:
+                return "high"
+            elif feature_std < 0.5:
+                return "medium"
+            else:
+                return "low"
+                
+        except Exception as e:
+            logger.warning(f"융합 신뢰도 계산 중 오류: {e}")
+            return "low"
+    
+    def _get_feature_importance(self) -> Dict[str, float]:
+        """특징 중요도 반환"""
+        try:
+            if self.fusion_model and hasattr(self.fusion_model, 'feature_importances_'):
+                return {
+                    f"feature_{i}": float(importance)
+                    for i, importance in enumerate(self.fusion_model.feature_importances_)
+                }
+            else:
+                return {"message": "모델이 훈련되지 않음"}
+                
+        except Exception as e:
+            logger.warning(f"특징 중요도 추출 중 오류: {e}")
+            return {"error": str(e)}
+    
+    def _get_baseline_result(self) -> Dict[str, Any]:
+        """기준선 결과 반환"""
+        return {
+            "fusion_score": 0.5,
+            "health_assessment": "unknown",
+            "risk_factors": [],
+            "confidence_level": "low",
+            "feature_importance": {"message": "기준선 모델"},
+            "fusion_algorithm": "baseline"
+        }
+    
+    def train_fusion_model(self, training_data: List[Tuple[np.ndarray, float]]) -> bool:
+        """융합 모델 훈련"""
+        try:
+            if not training_data:
+                logger.error("훈련 데이터가 없습니다")
+                return False
+            
+            # 데이터 분리
+            X = np.array([features for features, _ in training_data])
+            y = np.array([label for _, label in training_data])
+            
+            # 데이터 검증
+            if len(X) < 10:
+                logger.warning(f"훈련 데이터가 부족합니다: {len(X)}개")
+            
+            # 모델 훈련
+            self.fusion_model.fit(X, y)
+            
+            # 특징 이름 저장
+            self.feature_names = [f"feature_{i}" for i in range(X.shape[1])]
+            
+            logger.info(f"융합 모델 훈련 완료: {len(X)}개 샘플, {X.shape[1]}개 특징")
+            return True
             
         except Exception as e:
-            logger.warning(f"권장사항 생성 중 오류: {e}")
-        
-        return recommendations
+            logger.error(f"융합 모델 훈련 실패: {e}")
+            return False
     
-    def _integrate_results(
-        self,
-        rppg_data: Dict,
-        voice_data: Dict,
-        fusion_results: Dict,
-        data_quality: Dict
-    ) -> Dict[str, Any]:
-        """결과 통합 및 최종 검증"""
+    def save_model(self, filepath: str) -> bool:
+        """훈련된 모델 저장"""
         try:
-            final_results = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "analysis_type": "advanced_fusion",
-                "data_quality": data_quality,
-                "rppg_results": rppg_data,
-                "voice_results": voice_data,
-                "fusion_results": fusion_results,
-                "overall_health_score": 0.0,
-                "summary": "",
-                "technical_details": {
-                    "feature_count": 0,
-                    "fusion_algorithm": "advanced_ml_fusion",
-                    "model_version": "1.0.0"
-                }
+            if self.fusion_model is None:
+                logger.error("저장할 모델이 없습니다")
+                return False
+            
+            import joblib
+            model_data = {
+                'model': self.fusion_model,
+                'scaler': self.scaler,
+                'feature_names': self.feature_names,
+                'rppg_weight': self.rppg_weight,
+                'voice_weight': self.voice_weight
             }
             
-            # 전체 건강 점수 계산
-            if 'fusion_score' in fusion_results:
-                final_results["overall_health_score"] = fusion_results["fusion_score"]
-            
-            # 요약 생성
-            final_results["summary"] = self._generate_summary(fusion_results, data_quality)
-            
-            # 기술적 세부사항
-            if 'fusion_score' in fusion_results:
-                final_results["technical_details"]["feature_count"] = 18  # rPPG(10) + 음성(8)
-            
-            return final_results
+            joblib.dump(model_data, filepath)
+            logger.info(f"모델 저장 완료: {filepath}")
+            return True
             
         except Exception as e:
-            logger.error(f"결과 통합 중 오류: {e}")
-            return self._get_error_result(str(e))
+            logger.error(f"모델 저장 실패: {e}")
+            return False
+    
+    def load_model(self, filepath: str) -> bool:
+        """저장된 모델 로드"""
+        try:
+            import joblib
+            model_data = joblib.load(filepath)
+            
+            self.fusion_model = model_data['model']
+            self.scaler = model_data['scaler']
+            self.feature_names = model_data['feature_names']
+            self.rppg_weight = model_data['rppg_weight']
+            self.voice_weight = model_data['voice_weight']
+            
+            logger.info(f"모델 로드 완료: {filepath}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"모델 로드 실패: {e}")
+            return False
     
     def _generate_summary(self, fusion_results: Dict, data_quality: Dict) -> str:
         """분석 결과 요약 생성"""

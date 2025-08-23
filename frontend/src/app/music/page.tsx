@@ -20,11 +20,10 @@ export default function MusicPage() {
 
     // 임시 감정 데이터 생성 (실제로는 건강 측정 결과에서 가져와야 함)
     setEmotionData({
-      heartRate: 75,
-      stressLevel: 'medium',
-      voiceTone: 120,
-      hrv: 45,
       userId: currentUser.uid,
+      emotion: 'calm',
+      intensity: 0.7,
+      timestamp: new Date().toISOString(),
     });
   }, [currentUser, router]);
 
