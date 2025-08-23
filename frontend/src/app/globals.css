@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,5 +43,26 @@
 @layer utilities {
   .text-shadow {
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  
+  /* Landing Page Styles */
+  .font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+  
+  .glassmorphism {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(56, 189, 248, 0.1);
+  }
+  
+  .hero-bg {
+    background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
   }
 }
