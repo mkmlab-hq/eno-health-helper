@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { QRCode, Camera, Mic, TrendingUp, Shield, Heart } from 'lucide-react';
+import { QrCode, Camera, Mic, TrendingUp, Shield, Heart } from 'lucide-react';
 
 export default function HomePage() {
   const [productId, setProductId] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function HomePage() {
         <div className="card max-w-md mx-auto mb-12">
           <div className="text-center mb-6">
             <div className="w-20 h-20 bg-eno-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <QRCode className="w-10 h-10 text-eno-600" />
+              <QrCode className="w-10 h-10 text-eno-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               QR 코드 스캔
@@ -62,7 +62,7 @@ export default function HomePage() {
           
           {!productId ? (
             <button className="btn-primary w-full">
-              <QRCode className="w-5 h-5 mr-2 inline" />
+              <QrCode className="w-5 h-5 mr-2 inline" />
               QR 스캔 시작
             </button>
           ) : (
