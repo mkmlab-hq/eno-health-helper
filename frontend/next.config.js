@@ -1,33 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+<<<<<<< HEAD
   experimental: {
     appDir: true,
   },
+=======
+  trailingSlash: true,
+>>>>>>> 7f3f26ec1c67bf4806addae8f0afc8488a161832
   images: {
-    domains: ['localhost'],
+    unoptimized: true
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
-    ];
+  // 랜딩페이지 최적화
+  experimental: {
+    optimizeCss: true
   },
-};
+  // SEO 최적화
+  generateEtags: false,
+  compress: true
+}
 
-module.exports = nextConfig; 
+module.exports = nextConfig 

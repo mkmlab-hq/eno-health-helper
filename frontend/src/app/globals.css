@@ -1,35 +1,68 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Fira+Code:wght@300;400;500&display=swap");
-
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
-  }
   body {
-    @apply text-gray-900 bg-white;
+    @apply bg-gray-900 text-white font-noto;
   }
 }
 
 @layer components {
+  .glass-card {
+    @apply bg-glass backdrop-blur-md border border-glass-dark rounded-xl shadow-2xl;
+  }
+  
+  .neon-text {
+    @apply text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.5)];
+  }
+  
+  .neon-border {
+    @apply border-neon-cyan shadow-[0_0_20px_rgba(0,255,255,0.3)];
+  }
+  
   .btn-primary {
-    @apply bg-eno-600 hover:bg-eno-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply bg-gradient-to-r from-neon-cyan to-neon-sky text-gray-900 font-bold py-3 px-6 rounded-lg 
+           hover:from-neon-sky hover:to-neon-cyan transition-all duration-300 transform hover:scale-105 
+           shadow-lg hover:shadow-neon-cyan/50;
   }
+  
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200;
+    @apply bg-glass border border-neon-cyan text-neon-cyan font-medium py-2 px-4 rounded-lg
+           hover:bg-neon-cyan hover:text-gray-900 transition-all duration-300;
   }
-  .card {
-    @apply bg-white rounded-lg shadow-lg p-6;
-  }
-  .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-eno-500 focus:border-transparent;
+  
+  .btn-tertiary {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg 
+           hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 
+           shadow-lg hover:shadow-purple-500/50;
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-shadow {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  
+  /* Landing Page Styles */
+  .font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+  
+  .glassmorphism {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(56, 189, 248, 0.1);
+  }
+  
+  .hero-bg {
+    background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
   }
 }

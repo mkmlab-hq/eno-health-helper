@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  backend-light:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.light
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped

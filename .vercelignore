@@ -1,0 +1,14 @@
+# Vercel 배포 시 제외할 파일들
+node_modules/
+.next/
+.env*
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+*.pkl
+*.json.bak
+deploy-static/ 

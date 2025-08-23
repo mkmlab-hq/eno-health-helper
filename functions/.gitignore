@@ -1,4 +1,13 @@
+<<<<<<< HEAD
 venv/
 __pycache__/
 *.pyc
 .env
+=======
+# Python bytecode
+__pycache__/
+
+# Python virtual environment
+venv/
+*.local
+>>>>>>> 7f3f26ec1c67bf4806addae8f0afc8488a161832
