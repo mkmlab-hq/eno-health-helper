@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "eno-health-helper"
+  },
+  "targets": {
+    "eno-health-helper": {
+      "hosting": {
+        "mkmlab-space": [
+          "mkmlab-space"
+        ],
+        "eno-no1kmedi-com": [
+          "eno-no1kmedi-com"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

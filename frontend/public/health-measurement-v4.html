@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엔오건강도우미 - 건강 측정 v4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: radial-gradient(ellipse at bottom, #1e3a8a 0%, #020617 70%);
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .hidden { display: none; }
+        .screen {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem; /* 32px */
+        }
+        .screen.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .glassmorphism {
+            background: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.2); /* sky-400/20 */
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2), 0 0 30px rgba(56, 189, 248, 0.15);
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .face-outline-gradient {
+            stroke: url(#face-gradient);
+            stroke-dasharray: 1000;
+            animation: dash 5s linear infinite;
+        }
+        @keyframes dash {
+            from { stroke-dashoffset: 2000; }
+            to { stroke-dashoffset: 0; }
+        }
+        .scan-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #0ea5e9, transparent);
+            box-shadow: 0 0 10px #0ea5e9;
+            animation: scan 4s ease-in-out infinite;
+        }
+        @keyframes scan {
+            0%, 100% { top: 5%; }
+            50% { top: 95%; }
+        }
+    </style>
+</head>
+<body class="text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md mx-auto glassmorphism rounded-2xl shadow-2xl neon-glow text-center relative overflow-hidden min-h-[650px]">
+
+        <!-- 1. 시작 화면 -->
+        <div id="welcome-screen" class="screen active flex-grow justify-center items-center">
+            <div class="mb-6">
+                <svg class="w-24 h-24 text-sky-400 mx-auto" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#38bdf8; stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#0ea5e9; stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="url(#icon-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M32 18V32L42 37" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-3 font-orbitron">엔오건강도우미</h1>
+            <p class="text-gray-300 mb-8">MKM Lab의 AI 기술로 당신의 건강을 측정합니다.</p>
+            <div class="text-left text-sm text-gray-400 bg-slate-800/50 p-4 rounded-lg mb-10">
+                <p class="font-bold text-gray-200 mb-2">측정 안내:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li>총 35초 동안 진행됩니다.</li>
+                    <li><strong class="text-sky-300">30초 얼굴 인식:</strong> 카메라로 심박수, 스트레스 등 측정</li>
+                    <li><strong class="text-sky-300">5초 음성 분석:</strong> 마이크로 목소리 안정성 측정</li>
+                    <li>정확한 분석을 위해 조용한 환경을 권장합니다.</li>
+                </ul>
+            </div>
+            <button id="start-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/30">
+                측정 시작하기
+            </button>
+        </div>
+
+        <!-- 2. 얼굴 측정 화면 -->
+        <div id="face-screen" class="screen flex-grow justify-center items-center">
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">고요의 시간</h2>
+            <p class="text-gray-300 mb-8">화면의 가이드라인에 얼굴을 맞춰주세요.</p>
+            <div class="relative w-64 h-80 bg-slate-900/50 rounded-lg flex items-center justify-center mb-8 overflow-hidden">
+                <div class="absolute inset-0 bg-black opacity-50"></div>
+                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                        <linearGradient id="face-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#0ea5e9;"/>
+                            <stop offset="100%" style="stop-color:#67e8f9;"/>
+                        </linearGradient>
+                    </defs>
+                    <ellipse class="face-outline-gradient" cx="100" cy="125" rx="80" ry="110" stroke-width="3" fill="none"/>
+                </svg>
+                <div class="scan-line"></div>
+                <div class="absolute top-4 right-4">
+                    <svg class="w-16 h-16" viewBox="0 0 120 120">
+                        <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                        <circle id="face-progress-circle" class="progress-ring__circle text-sky-400" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                    </svg>
+                    <span id="face-timer-text" class="absolute inset-0 flex items-center justify-center text-xl font-bold font-orbitron">30</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500">정확한 심박 및 HRV 측정을 위해<br>움직이지 않고 편안한 상태를 유지해주세요.</p>
+        </div>
+
+        <!-- 3. 음성 측정 화면 -->
+        <div id="voice-screen" class="screen flex-grow justify-center items-center">
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">메아리의 시간</h2>
+            <p class="text-gray-300 mb-8">5초간 '아-' 소리를 편안하게 내주세요.</p>
+            <div class="w-64 h-80 bg-slate-900/50 rounded-lg flex items-center justify-center mb-8">
+                <canvas id="voice-canvas" class="w-full h-full"></canvas>
+                <div class="absolute top-4 right-4 text-xl font-bold font-orbitron bg-slate-900/50 px-3 py-1 rounded-md">
+                    <span id="voice-timer-text">5</span>s
+                </div>
+            </div>
+            <p class="text-xs text-gray-500">주변 소음이 없는 조용한 환경에서<br>가장 정확한 음성 분석이 가능합니다.</p>
+        </div>
+        
+        <!-- 4. 분석 중 화면 -->
+        <div id="analyzing-screen" class="screen flex-grow justify-center items-center">
+             <div class="animate-spin rounded-full h-24 w-24 border-b-4 border-sky-400 mb-8"></div>
+             <h2 class="text-2xl font-bold mb-4 font-orbitron">데이터 분석 중</h2>
+             <p class="text-gray-300">당신의 생체 신호 속 의미를 찾고 있습니다.</p>
+        </div>
+
+        <!-- 5. 상세 결과 화면 -->
+        <div id="result-screen" class="screen flex-grow justify-center items-start text-left">
+            <h2 class="text-3xl font-bold mb-6 text-sky-300 font-orbitron">측정 결과</h2>
+            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-10">
+                <div>
+                    <p class="text-sm text-gray-400">종합 건강 활력 점수</p>
+                    <p class="text-4xl font-bold text-white font-orbitron">82 <span class="text-xl font-normal text-gray-300">점</span></p>
+                </div>
+                <hr class="border-slate-700">
+                <div class="space-y-3">
+                    <p class="font-bold text-gray-200">❤️ 건강 지표 (rPPG 분석)</p>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">평균 심박수 (HR)</span>
+                        <span class="font-bold text-white">68 bpm</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">심박 변이도 (HRV)</span>
+                        <span class="font-bold text-green-400">55 ms (안정)</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">스트레스 수준</span>
+                        <span class="text-green-400">낮음</span>
+                    </div>
+                </div>
+                <hr class="border-slate-700">
+                <div class="space-y-3">
+                    <p class="font-bold text-gray-200">🎙️ 음성 지표 (음성 분석)</p>
+                     <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">음성 주파수 (Pitch)</span>
+                        <span class="font-bold text-white">130 Hz (안정적 톤)</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">음성 안정성 (Jitter & Shimmer)</span>
+                        <span class="font-bold text-green-400">매우 안정</span>
+                    </div>
+                </div>
+            </div>
+            <button id="save-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/30">
+                결과 저장하기
+            </button>
+             <p class="text-xs text-gray-500 mt-4 w-full text-center">결과는 마이페이지에 안전하게 저장됩니다.</p>
+        </div>
+    </div>
+
+<script>
+    const screens = {
+        welcome: document.getElementById('welcome-screen'),
+        face: document.getElementById('face-screen'),
+        voice: document.getElementById('voice-screen'),
+        analyzing: document.getElementById('analyzing-screen'),
+        result: document.getElementById('result-screen')
+    };
+
+    const startBtn = document.getElementById('start-btn');
+    const faceProgressCircle = document.getElementById('face-progress-circle');
+    const faceTimerText = document.getElementById('face-timer-text');
+    const voiceTimerText = document.getElementById('voice-timer-text');
+    
+    const FACE_DURATION = 30;
+    const VOICE_DURATION = 5;
+    const ANALYSIS_DURATION = 3000;
+
+    const radius = faceProgressCircle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    faceProgressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+    faceProgressCircle.style.strokeDashoffset = circumference;
+
+    function setProgress(percent) {
+        const offset = circumference - percent / 100 * circumference;
+        faceProgressCircle.style.strokeDashoffset = offset;
+    }
+
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    function startFaceMeasurement() {
+        showScreen('face');
+        let timeLeft = FACE_DURATION;
+        faceTimerText.textContent = timeLeft;
+        setProgress(0);
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            faceTimerText.textContent = timeLeft;
+            setProgress(((FACE_DURATION - timeLeft) / FACE_DURATION) * 100);
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                startVoiceMeasurement();
+            }
+        }, 1000);
+    }
+
+    function startVoiceMeasurement() {
+        showScreen('voice');
+        let timeLeft = VOICE_DURATION;
+        voiceTimerText.textContent = timeLeft;
+        
+        const canvas = document.getElementById('voice-canvas');
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+        
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let time = 0;
+        function drawWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#67e8f9');
+            gradient.addColorStop(0.5, '#0ea5e9');
+            gradient.addColorStop(1, '#67e8f9');
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+
+            for (let x = 0; x < canvas.width; x++) {
+                const y = canvas.height / 2 + Math.sin(x * 0.05 + time) * 30 * (Math.sin(time * 0.5) + 1.5);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            time += 0.1;
+            animationFrameId = requestAnimationFrame(drawWave);
+        }
+        drawWave();
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            voiceTimerText.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                cancelAnimationFrame(animationFrameId);
+                window.removeEventListener('resize', resizeCanvas);
+                startAnalysis();
+            }
+        }, 1000);
+    }
+    
+    function startAnalysis() {
+        showScreen('analyzing');
+        setTimeout(() => {
+            showScreen('result');
+        }, ANALYSIS_DURATION);
+    }
+
+    startBtn.addEventListener('click', () => {
+        startFaceMeasurement();
+    });
+
+</script>
+</body>
+</html> 

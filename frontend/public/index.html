@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엔오건강도우미 - PWA 데모</title>
+    <meta name="description" content="따뜻한 기술, 직관적인 건강 - AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스">
+    
+    <!-- PWA 메타 태그 -->
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="엔오건강도우미">
+    
+    <!-- PWA 매니페스트 -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- PWA 아이콘 -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        .font-orbitron { font-family: 'Orbitron', monospace; }
+        .neon-text { 
+            text-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9, 0 0 30px #0ea5e9;
+            color: #0ea5e9;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+            <div class="text-center">
+                <h1 class="text-6xl md:text-7xl font-orbitron font-bold neon-text mb-6 animate-fade-in">
+                    엔오건강도우미
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-fade-in">
+                    <span class="text-cyan-400 font-medium">따뜻한 기술, 직관적인 건강</span><br>
+                    AI 기반 rPPG와 음성 분석을 통해 정확한 건강 상태를 측정하고 모니터링하세요
+                </p>
+                
+                <!-- PWA 설치 버튼 -->
+                <div class="mb-8">
+                    <button id="installBtn" class="btn-primary text-xl px-8 py-4 hidden">
+                        📱 앱 설치하기
+                    </button>
+                </div>
+                
+                <!-- 데모 링크 -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
+                    <a href="/measure" class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        🎯 측정 시작하기
+                    </a>
+                    <a href="/result" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        📊 결과 보기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Elements -->
+        <div class="absolute top-20 left-10 w-20 h-20 bg-cyan-500/20 rounded-full animate-pulse-slow"></div>
+        <div class="absolute top-40 right-20 w-16 h-16 bg-blue-500/20 rounded-full animate-pulse-slow delay-1000"></div>
+        <div class="absolute bottom-40 left-20 w-12 h-12 bg-cyan-500/30 rounded-full animate-pulse-slow delay-2000"></div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <h2 class="text-4xl font-orbitron font-bold neon-text text-center mb-16">
+            핵심 기능
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- rPPG 측정 -->
+            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
+                <div class="w-20 h-20 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+                    <span class="text-4xl">❤️</span>
+                </div>
+                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
+                    rPPG 건강 측정
+                </h3>
+                <p class="text-gray-300 mb-6">
+                    카메라를 통해 얼굴의 미세한 색상 변화를 분석하여 심박수, 심박변이도, 스트레스 수준을 정확하게 측정합니다
+                </p>
+                <div class="text-cyan-400 font-medium">
+                    → 비접촉 측정
+                </div>
+            </div>
+
+            <!-- 음성 분석 -->
+            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
+                <div class="w-20 h-20 mx-auto bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
+                    <span class="text-4xl">🎤</span>
+                </div>
+                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
+                    음성 품질 분석
+                </h3>
+                <p class="text-gray-300 mb-6">
+                    Jitter, Shimmer 등 음성 지표를 통한 건강 상태 평가 및 스트레스 수준 분석
+                </p>
+                <div class="text-cyan-400 font-medium">
+                    → 음성 기반 진단
+                </div>
+            </div>
+
+            <!-- AI 분석 -->
+            <div class="glass-card p-8 text-center hover:scale-105 transition-transform duration-300">
+                <div class="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-6">
+                    <span class="text-4xl">🤖</span>
+                </div>
+                <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mb-4">
+                    AI 기반 분석
+                </h3>
+                <p class="text-gray-300 mb-6">
+                    딥러닝 알고리즘을 통한 정확한 건강 지표 계산 및 복용 전후 비교 분석
+                </p>
+                <div class="text-cyan-400 font-medium">
+                    → 지능형 진단
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA 설치 스크립트 -->
+    <script>
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').classList.remove('hidden');
+        });
+        
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('PWA 설치됨');
+                }
+                deferredPrompt = null;
+                document.getElementById('installBtn').classList.add('hidden');
+            }
+        });
+        
+        // PWA 설치 후 이벤트
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA가 성공적으로 설치되었습니다!');
+        });
+    </script>
+</body>
+</html> 

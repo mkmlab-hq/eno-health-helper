@@ -1,195 +1,221 @@
 # 엔오건강도우미 (ENO Health Helper)
 
-엔오플렉스 건강기능식품 전용 동반 서비스로, 복용 전후 생체신호 변화를 측정하여 개인화된 웰니스 가이드를 제공합니다.
+AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스
 
-## 🎯 **프로젝트 개요**
+## 🚀 **즉시 배포 및 확인 방법**
 
-**엔오건강도우미(ENO Health Helper)**는 **엔오플렉스 건강기능식품 전용 동반 서비스**로, 복용 전후 생체신호 변화를 측정하여 개인화된 웰니스 가이드를 제공합니다.
+### **GitHub Pages 설정 (필수!)**
 
-### **핵심 기능**
-- **QR 기반 접근**: 엔오플렉스 포장지 → 즉시 측정 시작
-- **복용 전후 비교**: Baseline 측정 → 복용 후 추적 → 변화 분석
-- **개인화 가이드**: 체질별 최적 복용법 및 라이프스타일 제안
-- **장기 추적**: 지속적 모니터링으로 효과 시각화
-- **재구매 연동**: 효과 확인 → 구매 의향 증대
+GitHub Pages가 작동하지 않는 경우 다음 단계를 따라 설정하세요:
 
-## 🏗️ **기술 스택**
+1. **GitHub 저장소 설정**:
+   - [GitHub 저장소](https://github.com/mkmlab-hq/eno-health-helper) 접속
+   - Settings → Pages 클릭
+   - Source를 "Deploy from a branch"로 설정
+   - Branch를 "main"으로 설정
+   - Folder를 "/ (root)"로 설정
+   - Save 클릭
 
-### **Frontend**
-- **Framework**: Next.js 14 + TypeScript
-- **Styling**: Tailwind CSS + Framer Motion
-- **State Management**: Zustand
-- **PWA**: Next.js PWA 플러그인
+2. **대기 시간**: 설정 후 5-10분 대기
 
-### **Backend**
-- **Framework**: FastAPI + Python
-- **AI Modules**: MKM Core AI (RPPG + Voice Analysis)
-- **Database**: PostgreSQL + SQLAlchemy
-- **Authentication**: JWT + OAuth2
+3. **배포 확인**: `https://mkmlab-hq.github.io/eno-health-helper` 접속
 
-### **AI/ML**
-- **RPPG Analysis**: 얼굴 혈류 변화 기반 심박수 측정
-- **Voice Analysis**: 음성 품질 분석 (F0, 지터, 쉬머, HNR)
-- **MKM-12 Engine**: 체질별 개인화 분석
+### **대안 배포 방법 (더 빠름!)**
 
-## 📁 **프로젝트 구조**
+#### **방법 1: Netlify (2분 - 추천!)**
+1. [Netlify](https://netlify.com) 접속
+2. `deploy-ready` 폴더를 Netlify에 드래그 앤 드롭
+3. 자동으로 배포 완료!
 
-```
-eno-health-helper/
-├── frontend/                 # Next.js 프론트엔드
-│   ├── src/
-│   │   ├── app/             # App Router
-│   │   ├── components/      # 재사용 컴포넌트
-│   │   ├── hooks/           # 커스텀 훅
-│   │   ├── lib/             # 유틸리티 함수
-│   │   └── types/           # TypeScript 타입 정의
-│   ├── public/              # 정적 파일
-│   └── package.json
-├── backend/                  # FastAPI 백엔드
-│   ├── app/
-│   │   ├── api/             # API 엔드포인트
-│   │   ├── core/            # 핵심 로직
-│   │   ├── models/          # 데이터 모델
-│   │   └── services/        # 비즈니스 로직
-│   ├── requirements.txt
-│   └── main.py
-├── shared/                   # 공통 타입/유틸리티
-│   ├── types/               # TypeScript 타입 정의
-│   └── constants/           # 상수 정의
-├── docs/                     # 프로젝트 문서
-└── docker-compose.yml        # 개발 환경 설정
-```
+#### **방법 2: Vercel (5분)**
+1. [Vercel](https://vercel.com) 접속
+2. GitHub 저장소 연결
+3. 자동으로 배포 완료!
 
-## 🚀 **빠른 시작**
+## 🚀 주요 기능
 
-### **개발 환경 설정**
+- **rPPG 건강 측정**: 카메라를 통한 비접촉 심박수, 심박변이도, 스트레스 수준 측정
+- **음성 품질 분석**: Jitter, Shimmer 등 음성 지표를 통한 건강 상태 평가
+- **Firebase 통합**: 안전한 사용자 인증 및 데이터 저장
+- **실시간 모니터링**: 건강 변화 추이 관리
+- **미래지향적 UI**: Glassmorphism 디자인과 네온 효과
+
+## 🛠️ 기술 스택
+
+### Frontend
+- **Next.js 14** - React 기반 풀스택 프레임워크
+- **TypeScript** - 타입 안전성
+- **Tailwind CSS** - 유틸리티 퍼스트 CSS 프레임워크
+- **Lucide React** - 아이콘 라이브러리
+
+### Backend & Database
+- **Firebase Authentication** - 사용자 인증
+- **Cloud Firestore** - NoSQL 데이터베이스
+- **Firebase Storage** - 파일 저장소
+
+### AI & Analysis
+- **rPPG (Remote Photoplethysmography)** - 비접촉 심박수 측정
+- **음성 분석** - Jitter, Shimmer 등 음성 품질 지표
+
+## 📱 사용 방법
+
+1. **계정 생성**: 간단한 회원가입으로 시작
+2. **얼굴 촬영**: 카메라를 정면으로 바라보고 정지 상태 유지
+3. **음성 녹음**: "아" 소리를 10초간 지속해서 발성
+4. **결과 확인**: AI 분석 결과 및 건강 지표 확인
+5. **데이터 저장**: Firebase에 측정 결과 저장
+
+## 🚀 빠른 시작
+
+### **1. 저장소 클론**
 ```bash
-# 1. 레포지토리 클론
 git clone https://github.com/mkmlab-hq/eno-health-helper.git
 cd eno-health-helper
+```
 
-# 2. Frontend 설정
+### **2. 의존성 설치**
+```bash
 cd frontend
 npm install
-npm run dev
-
-# 3. Backend 설정
-cd ../backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
 ```
 
-### **환경 변수 설정**
+### **3. Firebase 설정**
+1. [Firebase Console](https://console.firebase.google.com)에서 새 프로젝트 생성
+2. 웹 앱 추가 및 설정 값 복사
+3. `.env.local` 파일 생성 및 Firebase 설정 값 입력:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+### **4. 개발 서버 실행**
 ```bash
-# .env.local (Frontend)
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_APP_NAME=엔오건강도우미
-
-# .env (Backend)
-DATABASE_URL=postgresql://user:password@localhost/eno_health
-SECRET_KEY=your-secret-key
-MKM_CORE_AI_URL=http://localhost:8001
+npm run dev
 ```
 
-## 📱 **주요 페이지**
+브라우저에서 [http://localhost:3000](http://localhost:3000) 접속
 
-### **1. 메인 페이지 (/)**
-- QR 코드 스캔
-- 제품 정보 표시
-- 측정 시작 버튼
+## 🔧 환경 설정
 
-### **2. 측정 페이지 (/measurement)**
-- 카메라 권한 요청
-- RPPG + 음성 측정
-- 실시간 진행 상황
+### Firebase 설정
+1. **Authentication**: 이메일/비밀번호 로그인 활성화
+2. **Firestore Database**: 데이터베이스 생성 및 보안 규칙 설정
+3. **Storage**: 파일 업로드 권한 설정
 
-### **3. 결과 페이지 (/results)**
-- 건강 분석 리포트
-- Before/After 비교
-- 개인화 웰니스 가이드
-
-### **4. 추적 페이지 (/tracking)**
-- 측정 히스토리
-- 변화 추이 차트
-- 다음 측정 리마인더
-
-## 🔒 **법적 준수**
-
-### **의료어 필터**
-- 120개 의료 금지 용어 자동 필터링
-- 실시간 필터 적용 및 로깅
-
-### **면책 시스템**
-- **Level A**: 화면 하단 고정 "의료 진단 아님 · 참고용"
-- **Level B**: 결과 화면 상단 배너
-- **Level C**: 상세 정보 모달
-
-### **데이터 보호**
-- RAM only 임시 저장
-- 처리 완료 후 즉시 파기
-- 감사 로그 시스템
-
-## 🧪 **개발 가이드**
-
-### **컴포넌트 개발**
-```typescript
-// components/QRScanner.tsx
-interface QRScannerProps {
-  onScan: (productId: string) => void;
-  onError: (error: string) => void;
+### 보안 규칙 예시
+```javascript
+// Firestore 보안 규칙
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /measurements/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+  }
 }
-
-export const QRScanner: React.FC<QRScannerProps> = ({ onScan, onError }) => {
-  // QR 스캔 로직 구현
-};
 ```
 
-### **API 개발**
-```python
-# backend/app/api/health.py
-from fastapi import APIRouter, HTTPException
-from app.services.health_service import HealthService
+## 📁 프로젝트 구조
 
-router = APIRouter()
-health_service = HealthService()
-
-@router.post("/measure")
-async def measure_health(measurement_data: MeasurementRequest):
-    try:
-        result = await health_service.analyze(measurement_data)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+```
+frontend/
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── login/          # 로그인 페이지
+│   │   ├── signup/         # 회원가입 페이지
+│   │   ├── measure/        # 건강 측정 페이지
+│   │   ├── result/         # 결과 페이지
+│   │   ├── layout.tsx      # 루트 레이아웃
+│   │   └── page.tsx        # 메인 페이지
+│   ├── context/            # React Context
+│   │   └── AuthContext.tsx # 인증 상태 관리
+│   ├── lib/                # 유틸리티
+│   │   └── firebase.ts     # Firebase 설정
+│   └── globals.css         # 전역 스타일
+├── tailwind.config.js      # Tailwind CSS 설정
+├── postcss.config.js       # PostCSS 설정
+└── package.json            # 의존성 관리
 ```
 
-## 📊 **성능 지표**
+## 🎨 디자인 시스템
 
-### **핵심 KPI**
-- **응답 시간**: p95 < 1.2초
-- **실패율**: < 4%
-- **의료어 필터 누락**: 0건
-- **7일 재사용률**: ≥ 40%
+### 테마
+- **미래지향적 다크 모드**: 깊이감 있는 어두운 배경
+- **Glassmorphism**: 반투명 유리 질감 효과
+- **네온 효과**: 청록색(Cyan)/하늘색(Sky) 강조색
 
-## 🤝 **기여하기**
+### 폰트
+- **Orbitron**: 주요 제목용 (미래지향적)
+- **Noto Sans KR**: 본문용 (한글 최적화)
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+### 애니메이션
+- **부드러운 전환**: Fade-in, Slide-up 효과
+- **인터랙티브 호버**: 마우스 오버 시 반응
+- **로딩 애니메이션**: 진행 상태 표시
+
+## 🔒 보안 기능
+
+- **Firebase Authentication**: 안전한 사용자 인증
+- **환경 변수**: 민감한 정보 보호
+- **권한 기반 접근**: 사용자별 데이터 격리
+- **HTTPS**: 모든 통신 암호화
+
+## 📊 건강 지표
+
+### rPPG 측정
+- **심박수 (BPM)**: 정상 범위 60-100
+- **심박변이도 (HRV)**: 스트레스 및 회복력 지표
+- **스트레스 수준**: 낮음/보통/높음
+
+### 음성 분석
+- **Jitter**: 음성 주파수 변동성
+- **Shimmer**: 음성 진폭 변동성
+- **전체 음성 품질**: 건강 상태 반영
+
+## 🚀 배포
+
+### Vercel 배포 (권장)
+```bash
+npm run build
+vercel --prod
+```
+
+### Docker 배포
+```bash
+docker build -t eno-health-helper .
+docker run -p 3000:3000 eno-health-helper
+```
+
+## 🤝 기여하기
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 **라이선스**
+## 📄 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
 
-## 📞 **문의**
+## 📞 지원
 
-- **프로젝트 관리**: MKM Lab
-- **기술 문의**: [Issues](https://github.com/mkmlab-hq/eno-health-helper/issues)
-- **보안 문의**: security@mkmlab.com
+- **이슈 리포트**: [GitHub Issues](https://github.com/mkmlab-hq/eno-health-helper/issues)
+- **문의**: your-email@example.com
+- **문서**: [Wiki](https://github.com/mkmlab-hq/eno-health-helper/wiki)
+
+## 🙏 감사의 말
+
+- Firebase 팀 - 강력한 백엔드 서비스 제공
+- Next.js 팀 - 훌륭한 React 프레임워크
+- Tailwind CSS 팀 - 효율적인 CSS 프레임워크
+- 모든 오픈소스 기여자들
 
 ---
 
-**엔오건강도우미** - 당신의 건강한 변화를 측정하고 가이드합니다. 🏥✨ 
+**엔오건강도우미**와 함께 AI 기술로 더 건강한 삶을 만들어가세요! 🚀💪 
