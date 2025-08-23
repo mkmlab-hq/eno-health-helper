@@ -1,3 +1,7 @@
+# Google Cloud SDK & 기타 대용량 파일 무시
+/google-cloud-sdk*
+/anthoscli/
+*.tar.gz
 # Python
 __pycache__/
 *.py[cod]
