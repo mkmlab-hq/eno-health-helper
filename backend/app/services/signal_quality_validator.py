@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 from scipy import signal
-from scipy.stats import pearsonr
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,6 +23,96 @@ class SignalQualityValidator:
         self.min_confidence = 0.7  # 최소 신뢰도
         
         logger.info("신호 품질 검증 시스템 초기화 완료")
+    
+    def calculate_quality_score(self, metrics: Dict[str, Any]) -> float:
+        """
+        품질 점수 계산
+        
+        Args:
+            metrics: 품질 메트릭 딕셔너리
+            
+        Returns:
+            품질 점수 (0.0 ~ 1.0)
+        """
+        try:
+            score = 0.0
+            total_weight = 0.0
+            
+            # 밝기 점수 (0.3 가중치)
+            if 'brightness' in metrics:
+                brightness = metrics['brightness']
+                if 50 <= brightness <= 200:  # 적정 밝기 범위
+                    score += 0.3
+                elif 30 <= brightness <= 220:  # 허용 범위
+                    score += 0.2
+                total_weight += 0.3
+            
+            # 대비 점수 (0.2 가중치)
+            if 'contrast' in metrics:
+                contrast = metrics['contrast']
+                if contrast > 30:  # 충분한 대비
+                    score += 0.2
+                elif contrast > 20:  # 보통 대비
+                    score += 0.1
+                total_weight += 0.2
+            
+            # 얼굴 검출 품질 (0.3 가중치)
+            if 'face_detection_quality' in metrics:
+                face_quality = metrics['face_detection_quality']
+                score += face_quality * 0.3
+                total_weight += 0.3
+            
+            # 움직임 수준 (0.1 가중치)
+            if 'motion_level' in metrics:
+                motion = metrics['motion_level']
+                if motion < 0.1:  # 안정적
+                    score += 0.1
+                elif motion < 0.2:  # 보통
+                    score += 0.05
+                total_weight += 0.1
+            
+            # 신호 강도 (0.1 가중치)
+            if 'signal_strength' in metrics:
+                signal_strength = metrics['signal_strength']
+                score += signal_strength * 0.1
+                total_weight += 0.1
+            
+            # 최종 점수 계산
+            if total_weight > 0:
+                final_score = score / total_weight
+                return min(max(final_score, 0.0), 1.0)  # 0.0 ~ 1.0 범위로 제한
+            
+            return 0.0
+            
+        except Exception as e:
+            logger.error(f"품질 점수 계산 실패: {e}")
+            return 0.0
+    
+    def get_quality_level(self, quality_score: float) -> str:
+        """
+        품질 점수에 따른 품질 레벨 반환
+        
+        Args:
+            quality_score: 품질 점수 (0.0 ~ 1.0)
+            
+        Returns:
+            품질 레벨 문자열
+        """
+        try:
+            if quality_score >= 0.8:
+                return "excellent"
+            elif quality_score >= 0.6:
+                return "good"
+            elif quality_score >= 0.4:
+                return "fair"
+            elif quality_score >= 0.2:
+                return "poor"
+            else:
+                return "unacceptable"
+                
+        except Exception as e:
+            logger.error(f"품질 레벨 결정 실패: {e}")
+            return "unknown"
     
     def validate_face_detection(self, frame: np.ndarray) -> Dict[str, any]:
         """
