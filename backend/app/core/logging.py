@@ -1,7 +1,20 @@
 import logging
 import os
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from app.core.config import settings
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log = {
+            "timestamp": datetime.utcfromtimestamp(record.created).isoformat() + "Z",
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log["exception"] = self.formatException(record.exc_info)
+        return str(log)
 
 def setup_logging():
     """로깅 시스템을 설정합니다."""
@@ -15,18 +28,26 @@ def setup_logging():
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     date_format = "%Y-%m-%d %H:%M:%S"
     
-    # 루트 로거 설정
-    logging.basicConfig(
-        level=getattr(logging, settings.LOG_LEVEL),
-        format=log_format,
-        datefmt=date_format,
-        handlers=[
-            # 콘솔 출력
-            logging.StreamHandler(),
-            # 파일 출력
-            logging.FileHandler(settings.LOG_FILE, encoding='utf-8')
-        ]
-    )
+    # 루트 로거 가져오기
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, settings.LOG_LEVEL))
+
+    # 기존 핸들러 제거 후 재설정
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
+
+    # 콘솔 핸들러
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, settings.LOG_LEVEL))
+    console_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+
+    # 파일 핸들러 (일 단위 로테이션, 7일 보관)
+    file_handler = TimedRotatingFileHandler(settings.LOG_FILE, when='D', interval=1, backupCount=7, encoding='utf-8')
+    file_handler.setLevel(getattr(logging, settings.LOG_LEVEL))
+    file_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
     
     # 특정 모듈 로그 레벨 설정
     logging.getLogger("uvicorn").setLevel(logging.INFO)
@@ -63,7 +84,7 @@ def log_audit_event(
         if not os.path.exists(audit_dir):
             os.makedirs(audit_dir)
         
-        file_handler = logging.FileHandler(audit_file, encoding='utf-8')
+        file_handler = TimedRotatingFileHandler(audit_file, when='D', interval=1, backupCount=14, encoding='utf-8')
         file_handler.setLevel(logging.INFO)
         audit_logger.addHandler(file_handler)
     
@@ -95,7 +116,7 @@ def log_medical_term_filter(
         if not os.path.exists(filter_dir):
             os.makedirs(filter_dir)
         
-        file_handler = logging.FileHandler(filter_file, encoding='utf-8')
+        file_handler = TimedRotatingFileHandler(filter_file, when='D', interval=1, backupCount=14, encoding='utf-8')
         file_handler.setLevel(logging.INFO)
         filter_logger.addHandler(file_handler)
     

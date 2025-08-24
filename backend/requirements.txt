@@ -44,3 +44,6 @@ python-dotenv==1.0.0
 # Google Cloud Storage (GCS 데이터 로더용)
 google-cloud-storage==2.10.0
 google-auth==2.23.4 
+
+# 고성능 JSON 응답
+orjson==3.10.7 
