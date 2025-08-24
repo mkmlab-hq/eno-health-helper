@@ -76,7 +76,16 @@ app = FastAPI(
     description="시뮬레이션이 아닌 실제 알고리즘 기반 건강 측정 시스템",
     version="2.0.0"
 )
+
 logger.info(f"FastAPI 앱 생성 완료: {type(app)}")
+
+# Redis 기반 FastAPI 캐시 초기화
+try:
+    from app import init_cache
+    init_cache(app)
+    logger.info("FastAPI Cache with Redis 초기화 완료")
+except Exception as e:
+    logger.warning(f"FastAPI Cache 초기화 실패: {e}")
 
 # CORS 설정
 app.add_middleware(

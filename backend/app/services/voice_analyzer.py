@@ -37,16 +37,14 @@ class VoiceAnalyzer:
     
     async def analyze_voice(self, audio_data: bytes) -> Dict[str, Any]:
         """음성 데이터 분석"""
+        import asyncio
         try:
             logger.info(f"🎵 음성 분석 시작: {len(audio_data)} bytes")
-            
             # 실제 구현에서는 librosa나 parselmouth를 사용
             # 현재는 시뮬레이션 데이터로 분석
-            result = self._analyze_voice_simulation(audio_data)
-            
+            result = await asyncio.to_thread(self._analyze_voice_simulation, audio_data)
             logger.info(f"✅ 음성 분석 완료: F0={result.get('f0', 'N/A')} Hz")
             return result
-            
         except Exception as e:
             logger.error(f"❌ 음성 분석 실패: {e}")
             return self._get_fallback_result()

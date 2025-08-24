@@ -173,7 +173,7 @@ class EnhancedRPPGAnalyzer:
                 "can_proceed": False
             }
     
-    def analyze_measurement_data(self) -> Dict[str, Any]:
+    async def analyze_measurement_data(self) -> Dict[str, Any]:
         """
         측정 데이터 분석
         
@@ -185,7 +185,8 @@ class EnhancedRPPGAnalyzer:
                 raise ValueError("분석할 프레임이 없습니다")
             
             # 기존 RPPG 분석 수행
-            rppg_result = self._perform_rppg_analysis(self.current_frames)
+            import asyncio
+            rppg_result = await asyncio.to_thread(self._perform_rppg_analysis, self.current_frames)
             
             # 신호 품질 검증
             if 'heart_rate_signal' in rppg_result:

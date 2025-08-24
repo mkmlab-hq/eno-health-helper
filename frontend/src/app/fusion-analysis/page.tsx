@@ -1,3 +1,60 @@
+
+  // 오디오 자동 녹음용
+
+  // 1. 페이지 진입 시 30초간 얼굴(rPPG) 자동 녹화
+  useEffect(() => {
+    let videoTimeout: NodeJS.Timeout;
+    const doVideo = async () => {
+      await startVideoRecording();
+      // 30초 후 자동 정지
+      videoTimeout = setTimeout(() => {
+        stopRecording();
+      }, 30000);
+    };
+    doVideo();
+    return () => clearTimeout(videoTimeout);
+    // eslint-disable-next-line
+  }, []);
+
+  // 2. 얼굴 녹화가 끝나면 5초간 음성(아~) 자동 녹음
+  useEffect(() => {
+    if (videoBlob && !audioBlob && !isAudioRecording) {
+      const doAudio = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          audioRecorderRef.current = mediaRecorder;
+          const chunks: Blob[] = [];
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) chunks.push(event.data);
+          };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            setAudioBlob(blob);
+            stream.getTracks().forEach(track => track.stop());
+            setIsAudioRecording(false);
+          };
+          mediaRecorder.start();
+          setIsAudioRecording(true);
+          setTimeout(() => {
+            mediaRecorder.stop();
+          }, 5000);
+        } catch (err) {
+          setError('마이크 접근 권한이 필요합니다.');
+        }
+      };
+      doAudio();
+    }
+    // eslint-disable-next-line
+  }, [videoBlob]);
+
+  // 3. 비디오와 오디오가 모두 준비되면 자동 분석 실행
+  useEffect(() => {
+    if (videoBlob && audioBlob && !isAnalyzing && !result) {
+      runFusionAnalysis();
+    }
+    // eslint-disable-next-line
+  }, [videoBlob, audioBlob]);
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -23,6 +80,12 @@ export default function FusionAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
+  // 단계: welcome, face, voice, analyzing, done
+  const [screen, setScreen] = useState<'welcome'|'face'|'voice'|'analyzing'|'done'>('welcome');
+  const [faceTimeLeft, setFaceTimeLeft] = useState(30);
+  const [voiceTimeLeft, setVoiceTimeLeft] = useState(5);
+  const [isAudioRecording, setIsAudioRecording] = useState(false);
+  const audioRecorderRef = useRef<MediaRecorder | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -34,6 +97,86 @@ export default function FusionAnalysisPage() {
   const [recordingProgress, setRecordingProgress] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+
+  // 오디오 자동 녹음용
+  const audioRecorderRef = useRef<MediaRecorder | null>(null);
+  const [isAudioRecording, setIsAudioRecording] = useState(false);
+
+
+  // 측정 시작하기 버튼 클릭 시 전체 측정 플로우 시작
+  const startFullMeasurement = async () => {
+    setScreen('face');
+    setFaceTimeLeft(30);
+    setVoiceTimeLeft(5);
+    setAudioBlob(null);
+    setVideoBlob(null);
+    setResult(null);
+    setError(null);
+    // 얼굴 녹화 시작
+    await startVideoRecording();
+  };
+
+  // 얼굴 측정 타이머 및 자동 정지
+  useEffect(() => {
+    if (screen === 'face' && isRecording) {
+      if (faceTimeLeft === 0) {
+        stopRecording();
+        setScreen('voice');
+      } else {
+        const timer = setTimeout(() => setFaceTimeLeft(faceTimeLeft - 1), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [screen, faceTimeLeft, isRecording]);
+
+  // 얼굴 녹화가 끝나면 음성 녹음 시작
+  useEffect(() => {
+    if (screen === 'voice' && !audioBlob && !isAudioRecording) {
+      const doAudio = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          audioRecorderRef.current = mediaRecorder;
+          const chunks: Blob[] = [];
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) chunks.push(event.data);
+          };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            setAudioBlob(blob);
+            stream.getTracks().forEach(track => track.stop());
+            setIsAudioRecording(false);
+          };
+          mediaRecorder.start();
+          setIsAudioRecording(true);
+        } catch (err) {
+          setError('마이크 접근 권한이 필요합니다.');
+        }
+      };
+      doAudio();
+    }
+  }, [screen, audioBlob, isAudioRecording]);
+
+  // 음성 측정 타이머 및 자동 정지
+  useEffect(() => {
+    if (screen === 'voice' && isAudioRecording) {
+      if (voiceTimeLeft === 0) {
+        if (audioRecorderRef.current) audioRecorderRef.current.stop();
+      } else {
+        const timer = setTimeout(() => setVoiceTimeLeft(voiceTimeLeft - 1), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [screen, voiceTimeLeft, isAudioRecording]);
+
+  // 비디오와 오디오가 모두 준비되면 자동 분석 실행
+  useEffect(() => {
+    if (screen === 'voice' && videoBlob && audioBlob && !isAnalyzing && !result) {
+      setScreen('analyzing');
+      runFusionAnalysis();
+    }
+  }, [screen, videoBlob, audioBlob, isAnalyzing, result]);
 
   // 분석 단계 정의
   const analysisSteps = [
@@ -231,244 +374,112 @@ export default function FusionAnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 sm:p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* 헤더 */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">
-            🧬 4대 디지털 기질 융합 분석
-          </h1>
-          <p className="text-sm sm:text-base lg:text-lg text-gray-600 px-4">
-            rPPG와 음성을 동시에 분석하여 정확한 기질을 진단합니다
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 sm:p-4 flex flex-col items-center justify-center">
+      {/* 단계별 화면 */}
+      {screen === 'welcome' && (
+        <div className="flex flex-col items-center justify-center gap-8">
+          <h1 className="text-3xl md:text-5xl font-black text-indigo-900 mb-4 font-orbitron">엔오건강도우미 검사</h1>
+          <p className="text-lg text-gray-700 mb-8">AI rPPG와 음성 분석을 통해 35초 만에 건강 상태를 측정합니다.</p>
+          <button
+            className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition"
+            onClick={startFullMeasurement}
+          >
+            측정 시작하기
+          </button>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-          {/* 왼쪽: 데이터 수집 */}
-          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">
-              📹 생체신호 데이터 수집
-            </h2>
-
-            {/* 비디오 녹화 섹션 */}
-            <div className="mb-6">
-              <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-3">1. 얼굴 영상 녹화</h3>
-              
-              <div className="relative">
-                <video
-                  ref={videoRef}
-                  className="w-full h-32 sm:h-40 md:h-48 bg-gray-200 rounded-lg mb-3"
-                  autoPlay
-                  muted
-                  playsInline
-                />
-                
-                {/* 녹화 진행률 바 */}
-                {isRecording && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-lg overflow-hidden">
-                    <div 
-                      className="h-full bg-red-500 transition-all duration-100 ease-linear"
-                      style={{ width: `${recordingProgress}%` }}
-                    ></div>
-                  </div>
-                )}
-                
-                {isRecording && (
-                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs sm:text-sm font-medium">
-                    🔴 {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                {!isRecording ? (
-                  <button
-                    onClick={startVideoRecording}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium"
-                  >
-                    🎬 녹화 시작
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopRecording}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium"
-                  >
-                    ⏹️ 녹화 중지
-                  </button>
-                )}
-              </div>
-
-              {videoBlob && (
-                <div className="mt-3 p-2 bg-green-100 rounded text-green-800 text-xs sm:text-sm">
-                  ✅ 비디오 녹화 완료 ({Math.round(videoBlob.size / 1024)}KB)
-                </div>
-              )}
-            </div>
-
-            {/* 오디오 업로드 섹션 */}
-            <div className="mb-6">
-              <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-3">2. 음성 파일 업로드</h3>
-              
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleAudioUpload}
-                  className="block w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
-                />
-                
-                {/* 드래그 앤 드롭 영역 */}
-                <div className="mt-2 p-3 border-2 border-dashed border-gray-300 rounded-lg text-center text-xs sm:text-sm text-gray-500 hover:border-blue-400 transition-colors">
-                  또는 오디오 파일을 여기에 드래그하세요
-                </div>
-              </div>
-
-              {audioBlob && (
-                <div className="mt-3 p-2 bg-green-100 rounded text-green-800 text-xs sm:text-sm">
-                  ✅ 오디오 파일 업로드 완료 ({Math.round(audioBlob.size / 1024)}KB)
-                </div>
-              )}
-            </div>
-
-            {/* 분석 실행 버튼 */}
-            <button
-              onClick={runFusionAnalysis}
-              disabled={!videoBlob || !audioBlob || isAnalyzing}
-              className={`w-full py-3 px-6 rounded-lg text-white font-medium transition-all duration-300 transform ${
-                !videoBlob || !audioBlob || isAnalyzing
-                  ? 'bg-gray-400 cursor-not-allowed scale-95'
-                  : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95'
-              }`}
-            >
-              {isAnalyzing ? (
-                <span className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                  <span className="text-sm sm:text-base">융합 분석 중...</span>
-                </span>
-              ) : (
-                <span className="text-sm sm:text-base">🧬 융합 분석 실행</span>
-              )}
-            </button>
-          </div>
-
-          {/* 오른쪽: 결과 표시 */}
-          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">
-              📊 분석 결과
-            </h2>
-
-            {error && (
-              <div className="mb-4 p-3 sm:p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-                ❌ {error}
-              </div>
-            )}
-
-            {!result && !isAnalyzing && (
-              <div className="text-center text-gray-500 py-8 sm:py-12">
-                <div className="text-4xl sm:text-6xl mb-4">🔍</div>
-                <p className="text-sm sm:text-base">왼쪽에서 데이터를 수집하고 분석을 실행해주세요</p>
-              </div>
-            )}
-
-            {isAnalyzing && (
-              <div className="text-center py-8 sm:py-12">
-                <LoadingSpinner 
-                  size="lg" 
-                  color="purple" 
-                  text="융합 분석을 진행하고 있습니다..."
-                />
-                
-                {/* 분석 단계 표시 */}
-                <div className="mt-6">
-                  <ProgressSteps 
-                    steps={getCurrentSteps()} 
-                    currentStep={analysisStep}
-                  />
-                </div>
-              </div>
-            )}
-
-            {result && (
-              <div className="space-y-4">
-                {/* 기질 결과 */}
-                <div className="p-4 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
-                    🎯 진단된 기질
-                  </h3>
-                  <div className="text-2xl sm:text-3xl font-bold text-indigo-700 mb-2">
-                    {result.temperament.temperament}
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {result.temperament.message}
-                  </p>
-                </div>
-
-                {/* 신뢰도 */}
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
-                    📈 분석 신뢰도
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2 sm:h-3">
-                      <div
-                        className="bg-blue-500 h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${result.confidence * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-base sm:text-lg font-semibold text-blue-600">
-                      {Math.round(result.confidence * 100)}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* 분석 정보 */}
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
-                    ℹ️ 분석 정보
-                  </h3>
-                  <div className="space-y-1 text-xs sm:text-sm text-gray-600">
-                    <div>분석 시간: {new Date(result.timestamp).toLocaleString()}</div>
-                    <div>분석 유형: 융합 건강 분석</div>
-                    <div>데이터 소스: rPPG + 음성</div>
-                  </div>
-                </div>
-
-                {/* 결과 페이지 이동 버튼 */}
-                <button
-                  onClick={goToResult}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95"
-                >
-                  📋 상세 결과 보기
-                </button>
-              </div>
-            )}
+      {screen === 'face' && (
+        <div className="flex flex-col items-center justify-center gap-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 mb-2 font-orbitron">얼굴 인식 중...</h2>
+          <p className="text-lg text-gray-600 mb-4">정확한 측정을 위해 화면 중앙에 얼굴을 맞춰주세요.</p>
+          <video
+            ref={videoRef}
+            className="w-64 h-80 bg-black/50 rounded-lg border border-sky-500/50 mb-4"
+            autoPlay
+            muted
+            playsInline
+          />
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+              <circle
+                className="progress-ring__circle text-sky-400"
+                strokeWidth="6"
+                stroke="currentColor"
+                fill="transparent"
+                r="48"
+                cx="50"
+                cy="50"
+                style={{
+                  strokeDasharray: 301.59,
+                  strokeDashoffset: 301.59 * (1 - faceTimeLeft / 30),
+                  transition: 'stroke-dashoffset 1s linear',
+                }}
+              />
+            </svg>
+            <span className="absolute text-3xl font-bold text-sky-700 font-orbitron">{faceTimeLeft}s</span>
           </div>
         </div>
+      )}
 
-        {/* 안내 정보 */}
-        <div className="mt-6 sm:mt-8 bg-white rounded-xl shadow-lg p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
-            💡 융합 분석이란?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm text-gray-600">
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-2">📹</div>
-              <h3 className="font-medium text-gray-800 mb-2">rPPG 분석</h3>
-              <p>얼굴 영상에서 심박수, 혈압 등 생체신호를 비접촉으로 측정</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-2">🎵</div>
-              <h3 className="font-medium text-gray-800 mb-2">음성 분석</h3>
-              <p>목소리에서 감정 상태, 스트레스 레벨, 음성 패턴을 분석</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-2">🧬</div>
-              <h3 className="font-medium text-gray-800 mb-2">AI 융합</h3>
-              <p>두 데이터를 결합하여 더 정확한 4대 디지털 기질 진단</p>
-            </div>
+      {screen === 'voice' && (
+        <div className="flex flex-col items-center justify-center gap-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 mb-2 font-orbitron">음성 분석 중...</h2>
+          <p className="text-lg text-gray-600 mb-4 animate-pulse">지금부터 "아~" 소리를 내주세요.</p>
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+              <circle
+                className="progress-ring__circle text-purple-400"
+                strokeWidth="6"
+                stroke="currentColor"
+                fill="transparent"
+                r="48"
+                cx="50"
+                cy="50"
+                style={{
+                  strokeDasharray: 301.59,
+                  strokeDashoffset: 301.59 * (1 - voiceTimeLeft / 5),
+                  transition: 'stroke-dashoffset 1s linear',
+                }}
+              />
+            </svg>
+            <span className="absolute text-3xl font-bold text-purple-700 font-orbitron">{voiceTimeLeft}s</span>
           </div>
         </div>
-      </div>
+      )}
+
+      {screen === 'analyzing' && (
+        <div className="flex flex-col items-center justify-center gap-8">
+          <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-sky-400 mb-4"></div>
+          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 font-orbitron">분석 중...</h2>
+        </div>
+      )}
+
+      {result && screen === 'analyzing' && (
+        <div className="flex flex-col items-center justify-center gap-8 mt-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-green-700 font-orbitron">분석 완료!</h2>
+          <div className="p-6 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg shadow-lg">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">🎯 진단된 기질</h3>
+            <div className="text-2xl font-bold text-indigo-700 mb-2">{result.temperament.temperament}</div>
+            <p className="text-sm text-gray-600">{result.temperament.message}</p>
+            <div className="mt-4">
+              <span className="text-base font-semibold text-blue-600">신뢰도: {Math.round(result.confidence * 100)}%</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setScreen('welcome')}
+            className="mt-4 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full text-lg transition"
+          >
+            다시 측정하기
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 rounded-lg px-6 py-3 text-lg shadow-lg z-50">
+          ❌ {error}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,8 @@ rPPG-음성 융합 분석 API 엔드포인트
 이 모듈은 융합 분석을 위한 REST API 엔드포인트를 제공합니다.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi_cache.decorator import cache
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional, List
 import numpy as np
@@ -44,6 +45,7 @@ performance_optimizer = PerformanceOptimizer(config)
 
 @router.post("/analyze")
 async def analyze_fusion(
+    background_tasks: BackgroundTasks,
     video_file: UploadFile = File(...),
     audio_file: UploadFile = File(...),
     user_id: str = Form(...),
@@ -62,56 +64,53 @@ async def analyze_fusion(
         융합 분석 결과
     """
     try:
-        logger.info(f"융합 분석 시작: user_id={user_id}, session_id={session_id}")
-        
+        logger.info(f"융합 분석(백그라운드) 요청: user_id={user_id}, session_id={session_id}")
         # 파일 유효성 검사
         if not video_file.filename or not audio_file.filename:
             raise HTTPException(status_code=400, detail="비디오와 오디오 파일이 필요합니다")
-        
         # 파일 확장자 검사
         video_ext = video_file.filename.lower().split('.')[-1]
         audio_ext = audio_file.filename.lower().split('.')[-1]
-        
         if video_ext not in ['mp4', 'avi', 'mov', 'mkv']:
             raise HTTPException(status_code=400, detail="지원하지 않는 비디오 형식입니다")
-        
         if audio_ext not in ['wav', 'mp3', 'm4a', 'flac']:
             raise HTTPException(status_code=400, detail="지원하지 않는 오디오 형식입니다")
-        
-        # 파일 처리
-        video_frames = await process_video_file(video_file)
-        audio_signal = await process_audio_file(audio_file)
-        
-        # 개별 분석 수행
-        rppg_result = await analyze_rppg(video_frames)
-        voice_result = await analyze_voice(audio_signal)
-        
-        # 융합 분석 수행
-        fusion_result = await perform_fusion_analysis(
-            rppg_result, voice_result, video_frames, audio_signal
-        )
-        
-        # 결과에 메타데이터 추가
-        fusion_result.update({
-            "user_id": user_id,
-            "session_id": session_id,
-            "analysis_timestamp": datetime.utcnow().isoformat(),
-            "file_info": {
-                "video_file": video_file.filename,
-                "audio_file": audio_file.filename,
-                "video_frames": len(video_frames),
-                "audio_duration": len(audio_signal) / 22050  # 샘플레이트 가정
-            }
-        })
-        
-        logger.info(f"융합 분석 완료: user_id={user_id}, session_id={session_id}")
-        return fusion_result
-        
+
+        # 백그라운드 분석 함수 정의
+        async def background_fusion_analysis():
+            try:
+                video_frames = await process_video_file(video_file)
+                audio_signal = await process_audio_file(audio_file)
+                rppg_result = await analyze_rppg(video_frames)
+                voice_result = await analyze_voice(audio_signal)
+                fusion_result = await perform_fusion_analysis(
+                    rppg_result, voice_result, video_frames, audio_signal
+                )
+                fusion_result.update({
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "analysis_timestamp": datetime.utcnow().isoformat(),
+                    "file_info": {
+                        "video_file": video_file.filename,
+                        "audio_file": audio_file.filename,
+                        "video_frames": len(video_frames),
+                        "audio_duration": len(audio_signal) / 22050
+                    }
+                })
+                logger.info(f"[백그라운드] 융합 분석 완료: user_id={user_id}, session_id={session_id}")
+                # TODO: 결과를 DB/파일/메시지큐 등에 저장 또는 후처리
+            except Exception as e:
+                logger.error(f"[백그라운드] 융합 분석 중 오류: {e}")
+
+        # 백그라운드 작업 등록
+        background_tasks.add_task(background_fusion_analysis)
+        logger.info(f"융합 분석이 백그라운드로 위임됨: user_id={user_id}, session_id={session_id}")
+        return {"status": "accepted", "message": "분석이 백그라운드에서 처리됩니다."}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"융합 분석 중 오류 발생: {e}")
-        raise HTTPException(status_code=500, detail=f"분석 중 오류가 발생했습니다: {str(e)}")
+        logger.error(f"융합 분석(백그라운드) 요청 중 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"분석 요청 처리 중 오류가 발생했습니다: {str(e)}")
 
 
 @router.post("/analyze-json")
@@ -158,6 +157,7 @@ async def analyze_fusion_json(
 
 
 @router.get("/performance")
+@cache(expire=600)
 async def get_performance_summary() -> Dict[str, Any]:
     """융합 분석기 성능 요약 반환"""
     try:
@@ -273,13 +273,10 @@ async def analyze_rppg(video_frames: List[np.ndarray]) -> Dict[str, Any]:
     try:
         if not video_frames:
             return {"error": "비디오 프레임이 없습니다"}
-        
-        # rPPG 분석 수행
-        rppg_result = rppg_analyzer.analyze_rppg(video_frames)
-        
+        # rPPG 분석 수행 (비동기)
+        rppg_result = await rppg_analyzer.analyze_rppg(video_frames)
         logger.info("rPPG 분석 완료")
         return rppg_result
-        
     except Exception as e:
         logger.error(f"rPPG 분석 중 오류: {e}")
         return {"error": f"rPPG 분석 실패: {str(e)}"}
@@ -290,16 +287,12 @@ async def analyze_voice(audio_signal: np.ndarray) -> Dict[str, Any]:
     try:
         if len(audio_signal) == 0:
             return {"error": "오디오 신호가 없습니다"}
-        
         # 음성을 bytes로 변환 (기존 voice_analyzer 인터페이스 맞춤)
         audio_bytes = audio_signal.tobytes()
-        
-        # 음성 분석 수행
-        voice_result = voice_analyzer.analyze_voice(audio_bytes)
-        
+        # 음성 분석 수행 (비동기)
+        voice_result = await voice_analyzer.analyze_voice(audio_bytes)
         logger.info("음성 분석 완료")
         return voice_result
-        
     except Exception as e:
         logger.error(f"음성 분석 중 오류: {e}")
         return {"error": f"음성 분석 실패: {str(e)}"}
@@ -316,15 +309,12 @@ async def perform_fusion_analysis(
         # 오류 체크
         if "error" in rppg_result:
             logger.warning(f"rPPG 분석 오류: {rppg_result['error']}")
-        
         if "error" in voice_result:
             logger.warning(f"음성 분석 오류: {voice_result['error']}")
-        
-        # 융합 분석 수행
-        fusion_result = fusion_analyzer.analyze_fusion(
+        # 융합 분석 수행 (비동기)
+        fusion_result = await fusion_analyzer.analyze_fusion(
             rppg_result, voice_result, video_frames, audio_signal
         )
-        
         # 성능 최적화 제안 추가
         if hasattr(fusion_analyzer, 'get_performance_summary'):
             performance_summary = fusion_analyzer.get_performance_summary()
@@ -334,13 +324,11 @@ async def perform_fusion_analysis(
                         performance_summary
                     )
                     fusion_result["optimization_suggestions"] = optimization_suggestions
-        
         logger.info("융합 분석 완료")
         return fusion_result
-        
     except Exception as e:
         logger.error(f"융합 분석 중 오류: {e}")
         return {
             "error": f"융합 분석 실패: {str(e)}",
             "timestamp": datetime.utcnow().isoformat()
-        } 
+        }

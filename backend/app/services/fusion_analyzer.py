@@ -59,7 +59,7 @@ class AdvancedFusionAnalyzer:
             logger.error(f"융합 모델 초기화 실패: {e}")
             self.fusion_model = None
     
-    def analyze_fusion(
+    async def analyze_fusion(
         self,
         rppg_data: Dict[str, Any],
         voice_data: Dict[str, Any],
@@ -78,33 +78,24 @@ class AdvancedFusionAnalyzer:
         Returns:
             융합 분석 결과
         """
+        import asyncio
         try:
             logger.info("rPPG-음성 융합 분석 시작")
-            
             # 1단계: 데이터 품질 검증
-            data_quality = self._validate_data_quality(rppg_data, voice_data)
-            
+            data_quality = await asyncio.to_thread(self._validate_data_quality, rppg_data, voice_data)
             # 2단계: 특징 추출 및 정규화
-            rppg_features = self._extract_rppg_features(rppg_data, video_frames)
-            voice_features = self._extract_voice_features(voice_data, audio_signal)
-            
+            rppg_features = await asyncio.to_thread(self._extract_rppg_features, rppg_data, video_frames)
+            voice_features = await asyncio.to_thread(self._extract_voice_features, voice_data, audio_signal)
             # 3단계: 특징 융합
-            fused_features = self._fuse_features(rppg_features, voice_features)
-            
+            fused_features = await asyncio.to_thread(self._fuse_features, rppg_features, voice_features)
             # 4단계: 고급 융합 분석
-            fusion_results = self._perform_advanced_fusion(fused_features)
-            
+            fusion_results = await asyncio.to_thread(self._perform_advanced_fusion, fused_features)
             # 5단계: 결과 통합 및 검증
-            final_results = self._integrate_results(
-                rppg_data, voice_data, fusion_results, data_quality
-            )
-            
+            final_results = await asyncio.to_thread(self._integrate_results, rppg_data, voice_data, fusion_results, data_quality)
             # 6단계: 성능 메트릭 업데이트
-            self._update_performance_metrics(final_results)
-            
+            await asyncio.to_thread(self._update_performance_metrics, final_results)
             logger.info("rPPG-음성 융합 분석 완료")
             return final_results
-            
         except Exception as e:
             logger.error(f"융합 분석 실패: {e}")
             return self._get_error_result(str(e))
