@@ -1,3 +1,16 @@
+# 대용량/불필요 파일 무시
+google-cloud-sdk/
+anthoscli
+*.tar.gz
+*.zip
+*.bin
+*.pkl
+*.h5
+*.ckpt
+*.pt
+*.pb
+*.npy
+*.npz
 # Firebase 서비스 계정 키 (보안상 중요)
 serviceAccountKey.json
 *.json.key
