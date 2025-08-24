@@ -34,6 +34,12 @@ export default function FusionAnalysisPage() {
   const [recordingProgress, setRecordingProgress] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingStartTimeRef = useRef<number | null>(null);
+  const analysisAbortControllerRef = useRef<AbortController | null>(null);
+  const hasAutoStartedRef = useRef(false);
+  const [autoStart, setAutoStart] = useState(true);
+  const [autoAnalyze, setAutoAnalyze] = useState(true);
+  const [maxRecordSeconds, setMaxRecordSeconds] = useState(10);
 
   // 분석 단계 정의
   const analysisSteps = [
@@ -69,21 +75,60 @@ export default function FusionAnalysisPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 녹화 진행률 업데이트
+  // 페이지 진입 시 자동 녹화 시작 (옵션)
+  useEffect(() => {
+    if (!autoStart) return;
+    if (hasAutoStartedRef.current) return;
+    hasAutoStartedRef.current = true;
+    startVideoRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
+  // 탭 비활성화/이탈 시 녹화 정리
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isRecording) {
+        stopRecording();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [isRecording]);
+
+  // 언마운트 시 스트림 정리
+  useEffect(() => {
+    return () => {
+      try {
+        const stream = videoRef.current?.srcObject as MediaStream | null;
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+        }
+      } catch {}
+    };
+  }, []);
+
+  // 녹화 진행률 업데이트 (경과 시간 기반)
   useEffect(() => {
     if (isRecording) {
       const progressInterval = setInterval(() => {
-        setRecordingProgress(prev => {
-          if (prev >= 100) return 100;
-          return prev + 1;
-        });
+        if (!recordingStartTimeRef.current) return;
+        const elapsedSec = (Date.now() - recordingStartTimeRef.current) / 1000;
+        const pct = Math.min(100, (elapsedSec / maxRecordSeconds) * 100);
+        setRecordingProgress(pct);
       }, 100);
       
       return () => clearInterval(progressInterval);
     } else {
       setRecordingProgress(0);
     }
-  }, [isRecording]);
+  }, [isRecording, maxRecordSeconds]);
+
+  // 녹화 자동 종료 (설정 시간 도달)
+  useEffect(() => {
+    if (isRecording && recordingProgress >= 100) {
+      stopRecording();
+    }
+  }, [isRecording, recordingProgress]);
 
   // 분석 단계 시뮬레이션
   useEffect(() => {
@@ -101,16 +146,32 @@ export default function FusionAnalysisPage() {
     }
   }, [isAnalyzing]);
 
+  // 오디오 업로드 후 자동 분석 실행
+  useEffect(() => {
+    if (autoAnalyze && audioBlob && videoBlob && !isAnalyzing) {
+      runFusionAnalysis();
+    }
+  }, [autoAnalyze, audioBlob, videoBlob, isAnalyzing]);
+
   // 비디오 녹화 시작
   const startVideoRecording = async () => {
     try {
+      if (!('mediaDevices' in navigator)) {
+        setError('이 브라우저는 카메라 사용을 지원하지 않습니다.');
+        return;
+      }
+      if (!window.isSecureContext) {
+        setError('보안되지 않은 환경입니다. https 환경에서 다시 시도해주세요.');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: isMobile ? 480 : 640, 
           height: isMobile ? 360 : 480,
           facingMode: 'user'
         }, 
-        audio: true 
+        audio: false 
       });
       
       if (videoRef.current) {
@@ -133,12 +194,14 @@ export default function FusionAnalysisPage() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
         setVideoBlob(blob);
+        recordingStartTimeRef.current = null;
         
         // 스트림 정리
         stream.getTracks().forEach(track => track.stop());
       };
       
-      mediaRecorder.start();
+      recordingStartTimeRef.current = Date.now();
+      mediaRecorder.start(1000); // 매 1초마다 청크 수집
       setIsRecording(true);
       setRecordingTime(0);
       setRecordingProgress(0);
@@ -148,9 +211,22 @@ export default function FusionAnalysisPage() {
         setRecordingTime(prev => prev + 1);
       }, 1000);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('비디오 녹화 시작 실패:', err);
-      setError('카메라 접근 권한이 필요합니다.');
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setError('카메라 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setError('사용 가능한 카메라를 찾을 수 없습니다.');
+      } else if (name === 'NotReadableError') {
+        setError('카메라 장치를 사용할 수 없습니다. 다른 앱이 사용 중일 수 있습니다.');
+      } else if (name === 'OverconstrainedError') {
+        setError('요청한 카메라 해상도를 지원하지 않습니다.');
+      } else if (name === 'SecurityError') {
+        setError('보안 정책에 의해 차단되었습니다. https 환경에서 시도해주세요.');
+      } else {
+        setError('카메라 접근 권한이 필요합니다.');
+      }
     }
   };
 
@@ -159,6 +235,7 @@ export default function FusionAnalysisPage() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      recordingStartTimeRef.current = null;
       
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
@@ -169,12 +246,25 @@ export default function FusionAnalysisPage() {
   // 오디오 파일 업로드
   const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('audio/')) {
+    if (file && (file.type.startsWith('audio/') || file.name.match(/\.(wav|mp3|m4a|flac)$/i))) {
       setAudioBlob(file);
       setError(null);
+      if (autoAnalyze && videoBlob && !isAnalyzing) {
+        setTimeout(() => runFusionAnalysis(), 0);
+      }
     } else {
       setError('올바른 오디오 파일을 선택해주세요.');
     }
+  };
+
+  // 융합 분석 취소
+  const cancelAnalysis = () => {
+    try {
+      analysisAbortControllerRef.current?.abort();
+    } catch {}
+    analysisAbortControllerRef.current = null;
+    setIsAnalyzing(false);
+    setAnalysisStep(0);
   };
 
   // 융합 분석 실행
@@ -188,6 +278,9 @@ export default function FusionAnalysisPage() {
     setError(null);
     setAnalysisStep(0);
 
+    const controller = new AbortController();
+    analysisAbortControllerRef.current = controller;
+
     try {
       const formData = new FormData();
       formData.append('video', videoBlob, 'recording.webm');
@@ -197,21 +290,29 @@ export default function FusionAnalysisPage() {
       const response = await fetch('/api/health/fusion-analysis', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`분석 실패: ${response.statusText}`);
+        let message = '분석 중 오류가 발생했습니다.';
+        try {
+          const data = await response.json();
+          message = data?.error || data?.detail || message;
+        } catch {}
+        throw new Error(message);
       }
 
       const analysisResult = await response.json();
       setResult(analysisResult);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('융합 분석 실패:', err);
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.');
+      const isAbort = err?.name === 'AbortError';
+      setError(isAbort ? '분석이 취소되었습니다.' : (err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'));
     } finally {
       setIsAnalyzing(false);
       setAnalysisStep(0);
+      analysisAbortControllerRef.current = null;
     }
   };
 
@@ -249,6 +350,19 @@ export default function FusionAnalysisPage() {
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">
               📹 생체신호 데이터 수집
             </h2>
+
+            {/* 자동화 설정 */}
+            <div className="flex items-center gap-4 mb-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="rounded" checked={autoStart} onChange={(e) => setAutoStart(e.target.checked)} />
+                자동 녹화
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="rounded" checked={autoAnalyze} onChange={(e) => setAutoAnalyze(e.target.checked)} />
+                자동 분석 (업로드 후)
+              </label>
+              <div className="ml-auto text-xs text-gray-500">최대 {maxRecordSeconds}초 녹화</div>
+            </div>
 
             {/* 비디오 녹화 섹션 */}
             <div className="mb-6">
@@ -349,6 +463,14 @@ export default function FusionAnalysisPage() {
                 <span className="text-sm sm:text-base">🧬 융합 분석 실행</span>
               )}
             </button>
+            {isAnalyzing && (
+              <button
+                onClick={cancelAnalysis}
+                className="mt-2 w-full py-2 px-4 rounded-lg text-white bg-gray-600 hover:bg-gray-700 transition-colors text-sm sm:text-base font-medium"
+              >
+                ⛔ 분석 취소
+              </button>
+            )}
           </div>
 
           {/* 오른쪽: 결과 표시 */}
