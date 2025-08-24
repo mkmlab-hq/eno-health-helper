@@ -8,6 +8,10 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
+try:
+    import mediapipe as mp  # 실환경 미설치 대비
+except Exception:
+    mp = None
 
 # 새로 생성된 서비스들 import
 from .signal_quality_validator import SignalQualityValidator
@@ -28,10 +32,32 @@ class EnhancedRPPGAnalyzer:
     """
     
     def __init__(self):
-        # 기존 RPPG 분석기 초기화
+        # 기존 RPPG 분석기 초기화 (Haar는 폴백으로 유지)
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
+        
+        # MediaPipe Face Mesh 초기화 (주 검출기)
+        self.face_mesh = None
+        self.detector_backend = "opencv_haar"
+        try:
+            if mp is not None:
+                self.mp_face_mesh = mp.solutions.face_mesh
+                self.face_mesh = self.mp_face_mesh.FaceMesh(
+                    static_image_mode=False,
+                    max_num_faces=1,
+                    refine_landmarks=True,
+                    min_detection_confidence=0.5,
+                    min_tracking_confidence=0.5
+                )
+                self.detector_backend = "mediapipe_face_mesh"
+                logger.info("MediaPipe Face Mesh 초기화 완료")
+            else:
+                raise ImportError("mediapipe not available")
+        except Exception as e:
+            logger.error(f"MediaPipe Face Mesh 초기화 실패, Haar로 폴백됩니다: {e}")
+            self.face_mesh = None
+            self.detector_backend = "opencv_haar"
         
         # RPPG 분석 파라미터
         self.fps = 30
@@ -51,6 +77,8 @@ class EnhancedRPPGAnalyzer:
         self.measurement_session = None
         self.current_frames = []
         self.quality_history = []
+        self.detection_stats = {"frames": 0, "detections": 0, "rate": 0.0}
+        self.roi_history: List[Tuple[int, int, int, int]] = []
         
         logger.info("향상된 RPPG 분석 엔진 초기화 완료")
     
@@ -113,6 +141,17 @@ class EnhancedRPPGAnalyzer:
             # 프레임 품질 검증
             face_validation = self.quality_validator.validate_face_detection(frame)
             environment_validation = self.quality_validator.validate_measurement_environment(frame)
+
+            # MediaPipe 얼굴/랜드마크 검출 (실시간 정보 제공)
+            detection = self._detect_face_and_landmarks(frame)
+            self.latest_detection = detection
+            self.detection_stats["frames"] += 1
+            if detection.get("detected", False):
+                self.detection_stats["detections"] += 1
+            if self.detection_stats["frames"] > 0:
+                self.detection_stats["rate"] = (
+                    self.detection_stats["detections"] / self.detection_stats["frames"]
+                )
             
             # 품질 점수 계산
             quality_score = (face_validation.get('confidence', 0) + 
@@ -142,7 +181,12 @@ class EnhancedRPPGAnalyzer:
                         "face_validation": face_validation,
                         "environment_validation": environment_validation,
                         "message": "프레임 품질이 양호합니다.",
-                        "can_proceed": True
+                        "can_proceed": True,
+                        "detector_backend": self.detector_backend,
+                        "detection_rate": round(self.detection_stats["rate"], 3),
+                        "face_bbox": detection.get("face_bbox"),
+                        "roi_bbox": detection.get("roi_bbox"),
+                        "landmarks_468": detection.get("landmarks", [])
                     }
                 else:
                     # 품질 기준 미달
@@ -154,7 +198,12 @@ class EnhancedRPPGAnalyzer:
                         "message": "프레임 품질이 기준에 미달합니다.",
                         "can_proceed": False,
                         "recommendations": face_validation.get('recommendation', '') + 
-                                         " " + environment_validation.get('recommendation', '')
+                                         " " + environment_validation.get('recommendation', ''),
+                        "detector_backend": self.detector_backend,
+                        "detection_rate": round(self.detection_stats["rate"], 3),
+                        "face_bbox": detection.get("face_bbox"),
+                        "roi_bbox": detection.get("roi_bbox"),
+                        "landmarks_468": detection.get("landmarks", [])
                     }
             else:
                 return {
@@ -213,7 +262,9 @@ class EnhancedRPPGAnalyzer:
                 "rppg_analysis": rppg_result,
                 "quality_report": quality_report,
                 "protocol_status": self.protocol_manager.get_protocol_status(),
-                "recommendations": self._generate_recommendations(quality_report, rppg_result)
+                "recommendations": self._generate_recommendations(quality_report, rppg_result),
+                "detector_backend": self.detector_backend,
+                "detection_rate": round(self.detection_stats.get("rate", 0.0), 3)
             }
             
             return {
@@ -234,13 +285,14 @@ class EnhancedRPPGAnalyzer:
     def _perform_rppg_analysis(self, frames: List[np.ndarray]) -> Dict[str, Any]:
         """기존 RPPG 분석 수행"""
         try:
-            # 얼굴 감지
-            faces = self._detect_faces(frames[0])
-            if not faces:
+            # 얼굴/랜드마크 감지 (첫 프레임 기준, MediaPipe 우선)
+            detection = self._detect_face_and_landmarks(frames[0])
+            if not detection.get("detected"):
                 return {"error": "얼굴이 감지되지 않았습니다"}
-            
-            # ROI 추출
-            roi_data = self._extract_roi_data(frames, faces[0])
+
+            # ROI 추출 (랜드마크 기반 ROI가 있으면 우선 사용)
+            bbox_for_signal = detection.get("roi_bbox") or detection.get("face_bbox")
+            roi_data = self._extract_roi_data(frames, bbox_for_signal)
             
             # 신호 처리
             heart_rate_signal = self._process_heart_rate_signal(roi_data)
@@ -265,7 +317,12 @@ class EnhancedRPPGAnalyzer:
             raise
     
     def _detect_faces(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
-        """얼굴 감지"""
+        """얼굴 감지 (호환성 유지용, MediaPipe 사용 시 랜드마크 경계로 변환)"""
+        if self.face_mesh is not None:
+            detection = self._detect_face_and_landmarks(frame)
+            if detection.get("detected") and detection.get("face_bbox"):
+                return [detection["face_bbox"]]
+            return []
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(
             gray, 
@@ -274,6 +331,89 @@ class EnhancedRPPGAnalyzer:
             minSize=self.min_face_size
         )
         return faces
+
+    def _detect_face_and_landmarks(self, frame: np.ndarray) -> Dict[str, Any]:
+        """MediaPipe Face Mesh로 얼굴과 468개 랜드마크 검출, 실패 시 Haar 폴백"""
+        try:
+            h, w = frame.shape[:2]
+            if self.face_mesh is not None:
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                results = self.face_mesh.process(rgb)
+                if results.multi_face_landmarks:
+                    face_lms = results.multi_face_landmarks[0]
+                    pts = []
+                    min_x, min_y = w, h
+                    max_x, max_y = 0, 0
+                    for lm in face_lms.landmark:
+                        px = int(max(0, min(w - 1, lm.x * w)))
+                        py = int(max(0, min(h - 1, lm.y * h)))
+                        pts.append((px, py))
+                        min_x = min(min_x, px)
+                        min_y = min(min_y, py)
+                        max_x = max(max_x, px)
+                        max_y = max(max_y, py)
+
+                    # 경계 박스 패딩
+                    pad_x = int(0.03 * (max_x - min_x + 1))
+                    pad_y = int(0.05 * (max_y - min_y + 1))
+                    fx = max(0, min_x - pad_x)
+                    fy = max(0, min_y - pad_y)
+                    fw = min(w - fx, (max_x + pad_x) - fx)
+                    fh = min(h - fy, (max_y + pad_y) - fy)
+
+                    # ROI 자동 조정: 얼굴 상부 20% 영역 (이마 중심)
+                    roi_y = fy + int(0.12 * fh)
+                    roi_h = max(10, int(0.22 * fh))
+                    roi_x = fx + int(0.10 * fw)
+                    roi_w = max(10, int(0.80 * fw))
+                    # 경계 내로 클램프
+                    roi_x = max(0, min(roi_x, w - 1))
+                    roi_y = max(0, min(roi_y, h - 1))
+                    if roi_x + roi_w > w:
+                        roi_w = w - roi_x
+                    if roi_y + roi_h > h:
+                        roi_h = h - roi_y
+
+                    # 신뢰도 추정 (간단히 고정 상수, 추후 개선 가능)
+                    confidence = 0.9
+
+                    return {
+                        "detected": True,
+                        "face_bbox": (fx, fy, fw, fh),
+                        "roi_bbox": (roi_x, roi_y, roi_w, roi_h),
+                        "landmarks": pts,
+                        "confidence": confidence,
+                        "backend": "mediapipe"
+                    }
+
+            # 폴백: Haar Cascade
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self.face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=5,
+                minSize=self.min_face_size
+            )
+            if len(faces) == 0:
+                return {"detected": False, "face_bbox": None, "roi_bbox": None, "landmarks": [], "confidence": 0.0, "backend": "haar"}
+            # 가장 큰 얼굴
+            x, y, fw, fh = max(faces, key=lambda b: b[2] * b[3])
+            # ROI: 상단 1/3
+            roi_x = x + self.roi_padding
+            roi_y = y + self.roi_padding
+            roi_w = max(10, fw - 2 * self.roi_padding)
+            roi_h = max(10, fh // 3)
+            return {
+                "detected": True,
+                "face_bbox": (x, y, fw, fh),
+                "roi_bbox": (roi_x, roi_y, roi_w, roi_h),
+                "landmarks": [],
+                "confidence": 0.6,
+                "backend": "haar"
+            }
+        except Exception as e:
+            logger.error(f"얼굴/랜드마크 검출 실패: {e}")
+            return {"detected": False, "face_bbox": None, "roi_bbox": None, "landmarks": [], "confidence": 0.0, "backend": self.detector_backend}
     
     def _extract_roi_data(self, frames: List[np.ndarray], face_bbox: Tuple[int, int, int, int]) -> np.ndarray:
         """관심 영역 데이터 추출"""
@@ -281,9 +421,9 @@ class EnhancedRPPGAnalyzer:
         roi_data = []
         
         for frame in frames:
-            # ROI 추출 (얼굴 영역 + 패딩)
-            roi = frame[max(0, y-self.roi_padding):min(frame.shape[0], y+h+self.roi_padding),
-                       max(0, x-self.roi_padding):min(frame.shape[1], x+w+self.roi_padding)]
+            # ROI 추출 (이미 roi_bbox가 넘어온 경우 그대로 사용)
+            roi = frame[max(0, y):min(frame.shape[0], y+h),
+                       max(0, x):min(frame.shape[1], x+w)]
             
             if roi.size > 0:
                 # 그린 채널 평균값 (rPPG에 가장 적합)
@@ -374,7 +514,10 @@ class EnhancedRPPGAnalyzer:
             return 1.0
         
         snr = signal_power / noise_power
-        confidence = min(1.0, snr / 10.0)  # SNR 10 이상을 최고 신뢰도로 설정
+        # 검출 신뢰도와 결합 (MediaPipe 검출률 가중)
+        detection_rate = float(self.detection_stats.get("rate", 0.0))
+        base_confidence = min(1.0, snr / 10.0)  # SNR 10 이상을 최고 신뢰도로 설정
+        confidence = 0.75 * base_confidence + 0.25 * detection_rate
         
         return confidence
     
