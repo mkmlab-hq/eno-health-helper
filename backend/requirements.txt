@@ -44,3 +44,4 @@ python-dotenv==1.0.0
 # Google Cloud Storage (GCS 데이터 로더용)
 google-cloud-storage==2.10.0
 google-auth==2.23.4 
+scikit-learn==1.5.1 
