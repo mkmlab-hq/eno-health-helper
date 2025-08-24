@@ -28,6 +28,20 @@ class MedicalGradeRPPGAnalyzer:
             cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
         
+        # MediaPipe Face Detection (fallback) 초기화 시도
+        self.face_detector = None
+        try:
+            import mediapipe as mp  # 지연 로드하여 불필요한 의존성 초기화를 방지
+            self._mp_face_detection = mp.solutions.face_detection
+            self.face_detector = self._mp_face_detection.FaceDetection(
+                model_selection=0,
+                min_detection_confidence=0.5
+            )
+            logger.info("MediaPipe FaceDetection 초기화 완료")
+        except Exception as e:
+            logger.warning(f"MediaPipe FaceDetection 초기화 실패: {e}")
+            self._mp_face_detection = None
+        
         # RPPG 분석 파라미터
         self.fps = 30  # 프레임 레이트
         self.min_face_size = (50, 50)  # 최소 얼굴 크기
@@ -137,12 +151,39 @@ class MedicalGradeRPPGAnalyzer:
             first_frame = frames[0]
             gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
             
-            faces = self.face_cascade.detectMultiScale(
-                gray,
-                scaleFactor=1.1,
-                minNeighbors=5,
-                minSize=self.min_face_size
+            # 대비 향상을 위한 CLAHE 적용
+            try:
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                gray_proc = clahe.apply(gray)
+            except Exception:
+                gray_proc = gray
+            
+            # 프레임 크기에 따른 동적 최소 얼굴 크기 설정
+            h_img, w_img = gray_proc.shape[:2]
+            dyn_min_size = (
+                max(self.min_face_size[0], w_img // 10),
+                max(self.min_face_size[1], h_img // 10)
             )
+            
+            faces = self.face_cascade.detectMultiScale(
+                gray_proc,
+                scaleFactor=1.05,
+                minNeighbors=3,
+                minSize=dyn_min_size
+            )
+            
+            if len(faces) == 0 and self.face_detector is not None:
+                # MediaPipe Face Detection fallback
+                rgb = cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB)
+                result = self.face_detector.process(rgb)
+                if result and result.detections:
+                    det = result.detections[0]
+                    bbox = det.location_data.relative_bounding_box
+                    x = int(bbox.xmin * w_img)
+                    y = int(bbox.ymin * h_img)
+                    w = int(bbox.width * w_img)
+                    h = int(bbox.height * h_img)
+                    faces = [(max(0, x), max(0, y), max(1, w), max(1, h))]
             
             if len(faces) == 0:
                 logger.warning("얼굴을 검출할 수 없습니다")
@@ -155,8 +196,8 @@ class MedicalGradeRPPGAnalyzer:
             # 이마 영역을 ROI로 설정 (얼굴 상단 1/3)
             roi_x = x + self.roi_padding
             roi_y = y + self.roi_padding
-            roi_w = w - 2 * self.roi_padding
-            roi_h = h // 3  # 얼굴 상단 1/3
+            roi_w = max(1, w - 2 * self.roi_padding)
+            roi_h = max(1, h // 3)  # 얼굴 상단 1/3
             
             logger.info(f"얼굴 ROI 검출: ({roi_x}, {roi_y}, {roi_w}, {roi_h})")
             return (roi_x, roi_y, roi_w, roi_h)
@@ -214,11 +255,11 @@ class MedicalGradeRPPGAnalyzer:
             # Butterworth 대역 통과 필터
             b, a = signal.butter(4, [low_freq, high_freq], btype='band')
             
-            # 신호 필터링
+            # 신호 필터링 (위상 왜곡 방지를 위한 filtfilt)
             filtered_signal = signal.filtfilt(b, a, signal_dc_removed)
             
-            # 추가 노이즈 제거를 위한 이동 평균
-            window_size = 5
+            # 추가 노이즈 제거를 위한 Savitzky-Golay 스무딩
+            window_size = min( nine := 9, len(filtered_signal) // 2 * 2 + 1)  # 홀수 윈도우
             cleaned_signal = signal.savgol_filter(filtered_signal, window_size, 2)
             
             logger.info(f"신호 정제 완료: 필터링된 {len(cleaned_signal)} 데이터 포인트")
@@ -232,30 +273,26 @@ class MedicalGradeRPPGAnalyzer:
         """
         5단계: 핵심 지표 계산 및 모델 검증
         
-        FFT를 사용하여 심박수(BPM) 계산
+        Welch PSD를 사용하여 심박수(BPM) 계산
         피크 검출을 통한 HRV 계산
         벤치마크 데이터와 비교하여 정확도 평가
         """
         try:
-            # FFT를 통한 주파수 분석
-            fft_result = fft(cleaned_signal)
-            freqs = fftfreq(len(cleaned_signal), 1/self.fps)
-            
-            # 양의 주파수만 사용
-            positive_freqs = freqs[:len(freqs)//2]
-            positive_fft = np.abs(fft_result[:len(fft_result)//2])
+            # Welch를 통한 주파수 분석 (더 견고한 추정)
+            freqs, psd = signal.welch(
+                cleaned_signal,
+                fs=self.fps,
+                nperseg=min(256, len(cleaned_signal))
+            )
             
             # 심박수 범위 내에서 최대 파워 주파수 찾기
-            hr_mask = (positive_freqs >= self.min_freq) & (positive_freqs <= self.max_freq)
-            hr_freqs = positive_freqs[hr_mask]
-            hr_powers = positive_fft[hr_mask]
-            
-            if len(hr_powers) == 0:
+            hr_mask = (freqs >= self.min_freq) & (freqs <= self.max_freq)
+            if not np.any(hr_mask):
                 raise ValueError("심박수 범위 내에서 유효한 신호를 찾을 수 없습니다")
             
-            # 최대 파워 주파수 찾기
-            max_power_idx = np.argmax(hr_powers)
-            dominant_freq = hr_freqs[max_power_idx]
+            hr_freqs = freqs[hr_mask]
+            hr_powers = psd[hr_mask]
+            dominant_freq = hr_freqs[np.argmax(hr_powers)]
             
             # BPM 계산
             bpm = dominant_freq * 60
@@ -277,7 +314,7 @@ class MedicalGradeRPPGAnalyzer:
                 "hrv": round(hrv, 1),
                 "stress_level": stress_level,
                 "signal_quality": signal_quality,
-                "dominant_freq": round(dominant_freq, 3),
+                "dominant_freq": round(float(dominant_freq), 3),
                 "analysis_confidence": self._calculate_confidence(cleaned_signal),
                 "accuracy_vs_benchmark": accuracy_vs_benchmark
             }
@@ -333,7 +370,7 @@ class MedicalGradeRPPGAnalyzer:
             logger.warning(f"모델 검증 실패: {str(e)}, 기본 정확도 사용")
             return "95.0%"
     
-    def _calculate_hrv(self, signal: np.ndarray) -> float:
+    def _calculate_hrv(self, signal_values: np.ndarray) -> float:
         """
         심박 변이도(HRV) 계산
         
@@ -341,7 +378,7 @@ class MedicalGradeRPPGAnalyzer:
         """
         try:
             # 피크 검출
-            peaks, _ = signal.find_peaks(signal, height=np.mean(signal), distance=10)
+            peaks, _ = signal.find_peaks(signal_values, height=np.mean(signal_values), distance=10)
             
             if len(peaks) < 3:
                 return 50.0  # 기본값

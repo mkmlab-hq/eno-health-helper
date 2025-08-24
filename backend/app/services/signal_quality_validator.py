@@ -42,11 +42,24 @@ class SignalQualityValidator:
             )
             
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # 대비 향상을 위한 CLAHE 적용
+            try:
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                gray_proc = clahe.apply(gray)
+            except Exception:
+                gray_proc = gray
+            
+            # 동적 최소 얼굴 크기
+            h_img, w_img = gray_proc.shape[:2]
+            dyn_min_size = (
+                max(self.min_face_size[0], w_img // 10),
+                max(self.min_face_size[1], h_img // 10)
+            )
             faces = face_cascade.detectMultiScale(
-                gray, 
-                scaleFactor=1.1, 
-                minNeighbors=5, 
-                minSize=self.min_face_size
+                gray_proc, 
+                scaleFactor=1.05, 
+                minNeighbors=4, 
+                minSize=dyn_min_size
             )
             
             if len(faces) == 0:

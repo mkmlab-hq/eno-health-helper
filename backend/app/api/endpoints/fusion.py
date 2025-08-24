@@ -254,9 +254,31 @@ async def process_audio_file(audio_file: UploadFile) -> np.ndarray:
                 sr=22050,  # 표준 샘플레이트
                 mono=True
             )
+            # 1) 앞뒤 무음 제거
+            trimmed, _ = librosa.effects.trim(audio_signal, top_db=30)
+            # 2) 간단한 에너지 기반 VAD
+            frame_length = 2048
+            hop_length = 512
+            energy = librosa.feature.rms(y=trimmed, frame_length=frame_length, hop_length=hop_length)[0]
+            vad_mask = energy > (np.median(energy) * 0.6)
+            reconstructed = []
+            for i, keep in enumerate(vad_mask):
+                start = i * hop_length
+                end = min(len(trimmed), start + frame_length)
+                if keep:
+                    reconstructed.append(trimmed[start:end])
+            if reconstructed:
+                vad_signal = np.concatenate(reconstructed)
+            else:
+                vad_signal = trimmed
+            # 3) 프리엠퍼시스 + 정규화
+            pre_emphasis = 0.97
+            emphasized = np.append(vad_signal[0], vad_signal[1:] - pre_emphasis * vad_signal[:-1])
+            if np.max(np.abs(emphasized)) > 0:
+                emphasized = emphasized / np.max(np.abs(emphasized))
             
-            logger.info(f"오디오 처리 완료: {len(audio_signal)} 샘플, {sample_rate}Hz")
-            return audio_signal
+            logger.info(f"오디오 처리 완료: {len(emphasized)} 샘플, {sample_rate}Hz")
+            return emphasized
             
         finally:
             # 임시 파일 정리
