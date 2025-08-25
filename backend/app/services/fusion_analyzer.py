@@ -1,30 +1,55 @@
+"""
+고급 rPPG-음성 융합 분석 엔진
+
+핵심 기능:
+1. 다중 모달리티 융합 (rPPG + 음성)
+2. 시계열 동기화 및 정렬
+3. 고급 특징 추출 및 선택
+4. 머신러닝 기반 융합 모델
+5. MKM Lab 성능 모니터링 시스템 통합
+6. 실시간 병목 감지 및 자동 최적화
+"""
+
 import numpy as np
 import cv2
 import librosa
-from scipy import signal
-from scipy.stats import pearsonr, spearmanr
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 from typing import Dict, List, Optional, Tuple, Any
 import logging
-import json
-import os
 from datetime import datetime
-from pathlib import Path
 
+# 로거 설정
 logger = logging.getLogger(__name__)
+
+# MKM Lab 성능 모니터링 시스템 통합
+try:
+    import sys
+    # 절대 경로로 수정
+    mkm_lab_path = "F:/workspace/mkm-lab-workspace-config/src"
+    if mkm_lab_path not in sys.path:
+        sys.path.insert(0, mkm_lab_path)
+    from services.performance_monitor import MKMPerformanceMonitor
+    PERFORMANCE_MONITORING_ENABLED = True
+    logger.info("MKM Lab 성능 모니터링 시스템 import 성공")
+except ImportError as e:
+    PERFORMANCE_MONITORING_ENABLED = False
+    MKMPerformanceMonitor = None
+    logger.warning(f"MKM Lab 성능 모니터링 시스템 import 실패: {e}")
+    logger.info("기본 융합 분석 모드로 동작합니다")
+
 
 class AdvancedFusionAnalyzer:
     """
-    고급 rPPG-음성 융합 분석 엔진
+    고급 rPPG-음성 융합 분석 엔진 (MKM Lab 성능 모니터링 통합)
     
     핵심 기능:
     1. 다중 모달리티 융합 (rPPG + 음성)
     2. 시계열 동기화 및 정렬
     3. 고급 특징 추출 및 선택
     4. 머신러닝 기반 융합 모델
-    5. 실시간 성능 모니터링
+    5. MKM Lab 성능 모니터링 시스템 통합
+    6. 실시간 병목 감지 및 자동 최적화
     """
     
     def __init__(self):
@@ -40,10 +65,24 @@ class AdvancedFusionAnalyzer:
         # 성능 메트릭 저장
         self.performance_history = []
         
+        # MKM Lab 성능 모니터링 시스템 초기화
+        if PERFORMANCE_MONITORING_ENABLED and MKMPerformanceMonitor:
+            self.monitor = MKMPerformanceMonitor(
+                window_seconds=300,
+                latency_p95_threshold_ms=2000.0,  # 융합 분석은 더 긴 처리 시간 허용
+                accuracy_threshold=0.80,
+                fusion_confidence_threshold=0.75,
+                tcm_accuracy_threshold=0.80,
+            )
+            logger.info("MKM Lab 성능 모니터링 시스템 통합 완료")
+        else:
+            self.monitor = None
+            logger.warning("MKM Lab 성능 모니터링 시스템을 사용할 수 없습니다")
+        
         # 모델 초기화
         self._initialize_fusion_model()
         
-        logger.info("고급 rPPG-음성 융합 분석 엔진 초기화 완료")
+        logger.info("고급 rPPG-음성 융합 분석 엔진 초기화 완료 (MKM Lab 모니터링 통합)")
     
     def _initialize_fusion_model(self):
         """융합 머신러닝 모델 초기화"""
@@ -67,7 +106,7 @@ class AdvancedFusionAnalyzer:
         audio_signal: Optional[np.ndarray] = None
     ) -> Dict[str, Any]:
         """
-        rPPG-음성 융합 분석 메인 파이프라인
+        rPPG-음성 융합 분석 메인 파이프라인 (MKM Lab 모니터링 활성화)
         
         Args:
             rppg_data: rPPG 분석 결과
@@ -76,29 +115,531 @@ class AdvancedFusionAnalyzer:
             audio_signal: 원본 오디오 신호 (선택적)
             
         Returns:
-            융합 분석 결과
+            융합 분석 결과 (MKM Lab 모니터링 메트릭 포함)
         """
         import asyncio
+        
+        if not self.monitor:
+            # 모니터링이 비활성화된 경우 기본 분석 수행
+            return await self._basic_fusion_analysis(rppg_data, voice_data, video_frames, audio_signal)
+        
+        # MKM Lab 성능 모니터링과 함께 분석 수행
+        start_time = datetime.now()
+        success = True
+        result = {}
+        
         try:
-            logger.info("rPPG-음성 융합 분석 시작")
+            logger.info("rPPG-음성 융합 분석 시작 (MKM Lab 모니터링 활성화)")
+            
             # 1단계: 데이터 품질 검증
             data_quality = await asyncio.to_thread(self._validate_data_quality, rppg_data, voice_data)
-            # 2단계: 특징 추출 및 정규화
+            
+            # 2단계: 시간 동기화 검증
+            sync_status = await asyncio.to_thread(self._synchronize_modalities, rppg_data, voice_data)
+            
+            # 3단계: 특징 추출 및 정규화
             rppg_features = await asyncio.to_thread(self._extract_rppg_features, rppg_data, video_frames)
             voice_features = await asyncio.to_thread(self._extract_voice_features, voice_data, audio_signal)
-            # 3단계: 특징 융합
-            fused_features = await asyncio.to_thread(self._fuse_features, rppg_features, voice_features)
-            # 4단계: 고급 융합 분석
-            fusion_results = await asyncio.to_thread(self._perform_advanced_fusion, fused_features)
-            # 5단계: 결과 통합 및 검증
-            final_results = await asyncio.to_thread(self._integrate_results, rppg_data, voice_data, fusion_results, data_quality)
-            # 6단계: 성능 메트릭 업데이트
-            await asyncio.to_thread(self._update_performance_metrics, final_results)
-            logger.info("rPPG-음성 융합 분석 완료")
-            return final_results
+            
+            # 4단계: 동적 신뢰도 가중치 계산
+            dynamic_weights = await asyncio.to_thread(self._compute_dynamic_weights, rppg_data, voice_data, data_quality, sync_status)
+            
+            # 5단계: 특징 융합 (동적 가중치 적용)
+            fused_features = await asyncio.to_thread(self._fuse_features_with_weights, rppg_features, voice_features, dynamic_weights)
+            
+            # 6단계: 이상치 필터링
+            filtered_features, outlier_info = await asyncio.to_thread(self._filter_outliers, fused_features)
+            
+            # 7단계: 고급 융합 분석
+            fusion_results = await asyncio.to_thread(self._perform_advanced_fusion, filtered_features)
+            
+            # 8단계: 불확실성 추정
+            uncertainty = await asyncio.to_thread(self._estimate_uncertainty, filtered_features, fusion_results)
+            
+            # 9단계: 결과 통합 및 검증
+            final_results = await asyncio.to_thread(self._integrate_results, rppg_data, voice_data, fusion_results, data_quality, sync_status, dynamic_weights, uncertainty)
+            
+            # 10단계: MKM Lab 성능 메트릭 업데이트
+            await asyncio.to_thread(self._update_mkm_performance_metrics, final_results, start_time)
+            
+            logger.info("rPPG-음성 융합 분석 완료 (MKM Lab 모니터링)")
+            result = final_results
+            
         except Exception as e:
+            success = False
+            result = self._get_error_result(str(e))
             logger.error(f"융합 분석 실패: {e}")
+            raise
+        finally:
+            end_time = datetime.now()
+            processing_time_ms = (end_time - start_time).total_seconds() * 1000.0
+            
+            # MKM Lab 성능 모니터링 메트릭 기록
+            if self.monitor:
+                self.monitor.record_event(
+                    service_name="fusion",
+                    operation_name="multimodal_integration",
+                    latency_ms=processing_time_ms,
+                    success=success,
+                    accuracy=result.get("overall_health_score", 0.0),
+                    fusion_confidence=result.get("fusion_confidence", 0.0),
+                    tcm_diagnosis_accuracy=result.get("tcm_diagnosis_accuracy", 0.0),
+                    extra={
+                        "rppg_quality": result.get("rppg_quality", 0.0),
+                        "voice_quality": result.get("voice_quality", 0.0),
+                        "sync_status": result.get("sync_status", "unknown"),
+                        "outlier_count": result.get("outlier_count", 0),
+                        "uncertainty_level": result.get("uncertainty_level", "unknown"),
+                    }
+                )
+        
+        return result
+    
+    def _basic_fusion_analysis(self, rppg_data: Dict, voice_data: Dict, video_frames, audio_signal) -> Dict[str, Any]:
+        """기본 융합 분석 (모니터링 없음)"""
+        try:
+            # 기존 로직 실행
+            data_quality = self._validate_data_quality(rppg_data, voice_data)
+            rppg_features = self._extract_rppg_features(rppg_data, video_frames)
+            voice_features = self._extract_voice_features(voice_data, audio_signal)
+            fused_features = self._fuse_features(rppg_features, voice_features)
+            fusion_results = self._perform_advanced_fusion(fused_features)
+            
+            return self._integrate_results(rppg_data, voice_data, fusion_results, data_quality, {}, {}, {})
+            
+        except Exception as e:
+            logger.error(f"기본 융합 분석 실패: {e}")
             return self._get_error_result(str(e))
+    
+    def _synchronize_modalities(self, rppg_data: Dict, voice_data: Dict) -> Dict[str, Any]:
+        """rPPG와 음성 데이터의 시간 동기화 검증"""
+        sync_status = {
+            "synchronized": False,
+            "timestamp_diff_ms": 0.0,
+            "sync_quality": 0.0,
+            "recommendations": []
+        }
+        
+        try:
+            # 타임스탬프 추출
+            rppg_timestamp = rppg_data.get("timestamp", 0.0)
+            voice_timestamp = voice_data.get("timestamp", 0.0)
+            
+            if rppg_timestamp and voice_timestamp:
+                timestamp_diff = abs(rppg_timestamp - voice_timestamp)
+                sync_status["timestamp_diff_ms"] = timestamp_diff * 1000.0
+                
+                # 동기화 품질 평가 (100ms 이내면 우수)
+                if timestamp_diff < 0.1:
+                    sync_status["synchronized"] = True
+                    sync_status["sync_quality"] = 1.0
+                elif timestamp_diff < 0.5:
+                    sync_status["synchronized"] = True
+                    sync_status["sync_quality"] = 0.7
+                elif timestamp_diff < 1.0:
+                    sync_status["synchronized"] = False
+                    sync_status["sync_quality"] = 0.3
+                    sync_status["recommendations"].append("시간 동기화 개선 필요")
+                else:
+                    sync_status["synchronized"] = False
+                    sync_status["sync_quality"] = 0.0
+                    sync_status["recommendations"].append("심각한 시간 동기화 문제")
+            else:
+                sync_status["recommendations"].append("타임스탬프 정보 부족")
+                
+        except Exception as e:
+            logger.warning(f"시간 동기화 검증 중 오류: {e}")
+            sync_status["recommendations"].append("동기화 검증 실패")
+        
+        return sync_status
+    
+    def _compute_dynamic_weights(self, rppg_data: Dict, voice_data: Dict, data_quality: Dict, sync_status: Dict) -> Dict[str, float]:
+        """동적 신뢰도 가중치 계산"""
+        weights = {
+            "rppg_weight": self.rppg_weight,
+            "voice_weight": self.voice_weight,
+            "confidence_rppg": 0.0,
+            "confidence_voice": 0.0
+        }
+        
+        try:
+            # rPPG 신뢰도 계산
+            rppg_confidence = 0.0
+            if rppg_data:
+                # 심박수 범위 검증
+                hr = rppg_data.get("heart_rate", 0)
+                if 40 <= hr <= 200:
+                    rppg_confidence += 0.3
+                elif 30 <= hr <= 220:
+                    rppg_confidence += 0.2
+                
+                # 신호 품질
+                signal_quality = rppg_data.get("signal_quality", 0.0)
+                rppg_confidence += signal_quality * 0.4
+                
+                # 아티팩트 상태
+                artifacts = rppg_data.get("artifacts", {})
+                if not artifacts.get("motion_artifacts", False):
+                    rppg_confidence += 0.2
+                if not artifacts.get("saturation", False):
+                    rppg_confidence += 0.1
+            
+            # 음성 신뢰도 계산
+            voice_confidence = 0.0
+            if voice_data:
+                # Jitter 품질
+                jitter = voice_data.get("jitter_percent", 10.0)
+                if jitter < 2.0:
+                    voice_confidence += 0.4
+                elif jitter < 5.0:
+                    voice_confidence += 0.2
+                
+                # 음성 명확도
+                clarity = voice_data.get("voice_clarity", 0.0)
+                voice_confidence += clarity * 0.3
+                
+                # 감정 분석 신뢰도
+                emotion_confidence = voice_data.get("confidence", 0.0)
+                voice_confidence += emotion_confidence * 0.3
+            
+            # 동기화 품질 반영
+            sync_quality = sync_status.get("sync_quality", 0.0)
+            rppg_confidence *= sync_quality
+            voice_confidence *= sync_quality
+            
+            # 가중치 정규화
+            total_confidence = rppg_confidence + voice_confidence
+            if total_confidence > 0:
+                weights["rppg_weight"] = rppg_confidence / total_confidence
+                weights["voice_weight"] = voice_confidence / total_confidence
+                weights["confidence_rppg"] = rppg_confidence
+                weights["confidence_voice"] = voice_confidence
+            else:
+                # 기본값 사용
+                weights["rppg_weight"] = self.rppg_weight
+                weights["voice_weight"] = self.voice_weight
+            
+        except Exception as e:
+            logger.warning(f"동적 가중치 계산 중 오류: {e}")
+        
+        return weights
+    
+    def _fuse_features_with_weights(self, rppg_features: np.ndarray, voice_features: np.ndarray, dynamic_weights: Dict) -> np.ndarray:
+        """동적 가중치를 적용한 특징 융합"""
+        try:
+            # 특징 차원 맞추기
+            if len(rppg_features) < 10:
+                rppg_features = np.pad(rppg_features, (0, 10 - len(rppg_features)), 'constant')
+            if len(voice_features) < 8:
+                voice_features = np.pad(voice_features, (0, 8 - len(voice_features)), 'constant')
+            
+            # 동적 가중치 적용
+            rppg_weight = dynamic_weights.get("rppg_weight", self.rppg_weight)
+            voice_weight = dynamic_weights.get("voice_weight", self.voice_weight)
+            
+            fused = np.concatenate([
+                rppg_features * rppg_weight,
+                voice_features * voice_weight
+            ])
+            
+            # 정규화
+            if len(fused) > 0:
+                fused = (fused - np.mean(fused)) / (np.std(fused) + 1e-8)
+            
+            return fused
+            
+        except Exception as e:
+            logger.error(f"가중치 기반 특징 융합 중 오류: {e}")
+            return np.zeros(18, dtype=np.float32)
+    
+    def _filter_outliers(self, features: np.ndarray) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """이상치 탐지 및 제거"""
+        outlier_info = {
+            "original_count": len(features),
+            "outlier_count": 0,
+            "filtered_count": 0,
+            "outlier_indices": [],
+            "filtering_method": "percentile_clipping"
+        }
+        
+        try:
+            if len(features) == 0:
+                return features, outlier_info
+            
+            # 로버스트 퍼센타일 기반 이상치 탐지
+            q25 = np.percentile(features, 25)
+            q75 = np.percentile(features, 75)
+            iqr = q75 - q25
+            
+            lower_bound = q25 - 1.5 * iqr
+            upper_bound = q75 + 1.5 * iqr
+            
+            # 이상치 인덱스 찾기
+            outlier_mask = (features < lower_bound) | (features > upper_bound)
+            outlier_indices = np.where(outlier_mask)[0]
+            
+            # 이상치 정보 기록
+            outlier_info["outlier_count"] = len(outlier_indices)
+            outlier_info["outlier_indices"] = outlier_indices.tolist()
+            outlier_info["lower_bound"] = float(lower_bound)
+            outlier_info["upper_bound"] = float(upper_bound)
+            
+            # 이상치 제거 (클리핑)
+            filtered_features = np.clip(features, lower_bound, upper_bound)
+            outlier_info["filtered_count"] = len(filtered_features)
+            
+            if outlier_info["outlier_count"] > 0:
+                logger.info(f"이상치 {outlier_info['outlier_count']}개 탐지 및 제거 완료")
+            
+            return filtered_features, outlier_info
+            
+        except Exception as e:
+            logger.warning(f"이상치 필터링 중 오류: {e}")
+            outlier_info["filtering_method"] = "error_fallback"
+            return features, outlier_info
+    
+    def _estimate_uncertainty(self, features: np.ndarray, fusion_results: Dict) -> Dict[str, Any]:
+        """융합 결과의 불확실성 추정"""
+        uncertainty = {
+            "overall_uncertainty": 0.0,
+            "feature_variance": 0.0,
+            "model_uncertainty": 0.0,
+            "uncertainty_level": "unknown",
+            "confidence_interval": [0.0, 0.0]
+        }
+        
+        try:
+            # 특징 분산 기반 불확실성
+            if len(features) > 0:
+                feature_variance = np.var(features)
+                uncertainty["feature_variance"] = float(feature_variance)
+            
+            # 모델 불확실성 (RandomForest 앙상블 분산)
+            if self.fusion_model and hasattr(self.fusion_model, 'estimators_'):
+                # 각 트리의 예측 분산 계산
+                predictions = []
+                for estimator in self.fusion_model.estimators_:
+                    try:
+                        pred = estimator.predict(features.reshape(1, -1))[0]
+                        predictions.append(pred)
+                    except:
+                        continue
+                
+                if predictions:
+                    predictions = np.array(predictions)
+                    model_variance = np.var(predictions)
+                    uncertainty["model_uncertainty"] = float(model_variance)
+            
+            # 전체 불확실성 계산
+            total_uncertainty = (
+                uncertainty["feature_variance"] * 0.4 +
+                uncertainty["model_uncertainty"] * 0.6
+            )
+            uncertainty["overall_uncertainty"] = float(total_uncertainty)
+            
+            # 신뢰 구간 계산
+            if len(features) > 0:
+                mean_val = np.mean(features)
+                std_val = np.std(features)
+                uncertainty["confidence_interval"] = [
+                    float(mean_val - 1.96 * std_val),
+                    float(mean_val + 1.96 * std_val)
+                ]
+            
+            # 불확실성 수준 분류
+            if total_uncertainty < 0.1:
+                uncertainty["uncertainty_level"] = "very_low"
+            elif total_uncertainty < 0.3:
+                uncertainty["uncertainty_level"] = "low"
+            elif total_uncertainty < 0.5:
+                uncertainty["uncertainty_level"] = "medium"
+            elif total_uncertainty < 0.7:
+                uncertainty["uncertainty_level"] = "high"
+            else:
+                uncertainty["uncertainty_level"] = "very_high"
+                
+        except Exception as e:
+            logger.warning(f"불확실성 추정 중 오류: {e}")
+            uncertainty["uncertainty_level"] = "error"
+        
+        return uncertainty
+    
+    def _integrate_results(self, rppg_data: Dict, voice_data: Dict, fusion_results: Dict, 
+                          data_quality: Dict, sync_status: Dict, dynamic_weights: Dict, 
+                          uncertainty: Dict) -> Dict[str, Any]:
+        """모든 결과를 통합하여 최종 결과 생성"""
+        try:
+            # 기본 융합 결과
+            integrated_result = {
+                "analysis_id": f"fusion_{int(datetime.now().timestamp())}",
+                "timestamp": datetime.now().isoformat(),
+                "analysis_type": "advanced_fusion_mkm_lab",
+                "status": "success"
+            }
+            
+            # 융합 점수 및 건강 평가
+            if fusion_results:
+                integrated_result.update({
+                    "overall_health_score": fusion_results.get("fusion_score", 0.0),
+                    "health_assessment": fusion_results.get("health_assessment", "unknown"),
+                    "risk_factors": fusion_results.get("risk_factors", []),
+                    "fusion_confidence": fusion_results.get("confidence_level", "low"),
+                    "fusion_algorithm": fusion_results.get("fusion_algorithm", "unknown")
+                })
+            
+            # 데이터 품질 정보
+            if data_quality:
+                integrated_result.update({
+                    "data_quality": data_quality,
+                    "rppg_quality": data_quality.get("rppg_quality", 0.0),
+                    "voice_quality": data_quality.get("voice_quality", 0.0),
+                    "overall_quality": data_quality.get("overall_quality", 0.0)
+                })
+            
+            # 동기화 상태
+            if sync_status:
+                integrated_result.update({
+                    "sync_status": sync_status,
+                    "synchronized": sync_status.get("synchronized", False),
+                    "sync_quality": sync_status.get("sync_quality", 0.0)
+                })
+            
+            # 동적 가중치 정보
+            if dynamic_weights:
+                integrated_result.update({
+                    "dynamic_weights": dynamic_weights,
+                    "rppg_weight": dynamic_weights.get("rppg_weight", 0.0),
+                    "voice_weight": dynamic_weights.get("voice_weight", 0.0)
+                })
+            
+            # 불확실성 정보
+            if uncertainty:
+                integrated_result.update({
+                    "uncertainty": uncertainty,
+                    "uncertainty_level": uncertainty.get("uncertainty_level", "unknown"),
+                    "overall_uncertainty": uncertainty.get("overall_uncertainty", 0.0)
+                })
+            
+            # TCM 진단 정확도 (한의학 특화)
+            tcm_accuracy = self._calculate_tcm_diagnosis_accuracy(integrated_result)
+            integrated_result["tcm_diagnosis_accuracy"] = tcm_accuracy
+            
+            # 융합 신뢰도 점수
+            fusion_confidence_score = self._calculate_fusion_confidence_score(integrated_result)
+            integrated_result["fusion_confidence_score"] = fusion_confidence_score
+            
+            # 요약 생성
+            integrated_result["summary"] = self._generate_summary(integrated_result)
+            
+            return integrated_result
+            
+        except Exception as e:
+            logger.error(f"결과 통합 중 오류: {e}")
+            return self._get_error_result(str(e))
+    
+    def _calculate_tcm_diagnosis_accuracy(self, integrated_result: Dict) -> float:
+        """한의학 진단 정확도 계산"""
+        try:
+            accuracy = 0.0
+            
+            # 데이터 품질 기반 정확도
+            data_quality = integrated_result.get("overall_quality", 0.0)
+            accuracy += data_quality * 0.3
+            
+            # 동기화 품질 기반 정확도
+            sync_quality = integrated_result.get("sync_quality", 0.0)
+            accuracy += sync_quality * 0.2
+            
+            # 융합 신뢰도 기반 정확도
+            fusion_confidence = integrated_result.get("fusion_confidence", "low")
+            confidence_mapping = {"very_high": 1.0, "high": 0.8, "medium": 0.6, "low": 0.4}
+            accuracy += confidence_mapping.get(fusion_confidence, 0.4) * 0.3
+            
+            # 불확실성 기반 정확도
+            uncertainty_level = integrated_result.get("uncertainty_level", "medium")
+            uncertainty_mapping = {"very_low": 1.0, "low": 0.8, "medium": 0.6, "high": 0.4, "very_high": 0.2}
+            accuracy += uncertainty_mapping.get(uncertainty_level, 0.6) * 0.2
+            
+            return min(1.0, max(0.0, accuracy))
+            
+        except Exception as e:
+            logger.warning(f"TCM 진단 정확도 계산 중 오류: {e}")
+            return 0.5
+    
+    def _calculate_fusion_confidence_score(self, integrated_result: Dict) -> float:
+        """융합 신뢰도 점수 계산"""
+        try:
+            confidence = 0.0
+            
+            # 데이터 품질
+            quality = integrated_result.get("overall_quality", 0.0)
+            confidence += quality * 0.25
+            
+            # 동기화 품질
+            sync_quality = integrated_result.get("sync_quality", 0.0)
+            confidence += sync_quality * 0.25
+            
+            # 융합 알고리즘 신뢰도
+            algorithm = integrated_result.get("fusion_algorithm", "unknown")
+            if algorithm == "random_forest_ensemble":
+                confidence += 0.3
+            elif algorithm == "baseline":
+                confidence += 0.1
+            else:
+                confidence += 0.2
+            
+            # 불확실성 수준
+            uncertainty_level = integrated_result.get("uncertainty_level", "medium")
+            uncertainty_mapping = {"very_low": 0.2, "low": 0.1, "medium": 0.0, "high": -0.1, "very_high": -0.2}
+            confidence += uncertainty_mapping.get(uncertainty_level, 0.0)
+            
+            return min(1.0, max(0.0, confidence))
+            
+        except Exception as e:
+            logger.warning(f"융합 신뢰도 점수 계산 중 오류: {e}")
+            return 0.5
+    
+    def _update_mkm_performance_metrics(self, results: Dict, start_time: datetime):
+        """MKM Lab 성능 모니터링 메트릭 업데이트"""
+        try:
+            if not self.monitor:
+                return
+            
+            # 성능 메트릭 구성
+            metric = {
+                "timestamp": datetime.now().isoformat(),
+                "overall_health_score": results.get("overall_health_score", 0.0),
+                "tcm_diagnosis_accuracy": results.get("tcm_diagnosis_accuracy", 0.0),
+                "fusion_confidence_score": results.get("fusion_confidence_score", 0.0),
+                "data_quality": results.get("overall_quality", 0.0),
+                "sync_quality": results.get("sync_quality", 0.0),
+                "uncertainty_level": results.get("uncertainty_level", "unknown"),
+                "processing_time_ms": 0.0,  # 실제 구현 시 측정
+                "outlier_count": results.get("outlier_count", 0),
+                "algorithm": results.get("fusion_algorithm", "unknown")
+            }
+            
+            # 성능 이력에 추가
+            self.performance_history.append(metric)
+            
+            # 최근 100개 메트릭만 유지
+            if len(self.performance_history) > 100:
+                self.performance_history = self.performance_history[-100:]
+                
+        except Exception as e:
+            logger.warning(f"MKM Lab 성능 메트릭 업데이트 중 오류: {e}")
+    
+    def get_mkm_performance_metrics(self) -> Optional[Dict[str, Any]]:
+        """MKM Lab 성능 모니터링 메트릭 스냅샷 반환"""
+        if self.monitor:
+            return self.monitor.get_metrics_snapshot()
+        return None
+    
+    def get_mkm_bottlenecks(self) -> List[Dict[str, Any]]:
+        """MKM Lab 성능 병목 분석 결과 반환"""
+        if self.monitor:
+            return self.monitor.analyze_bottlenecks()
+        return []
     
     def _validate_data_quality(self, rppg_data: Dict, voice_data: Dict) -> Dict[str, Any]:
         """데이터 품질 검증"""
