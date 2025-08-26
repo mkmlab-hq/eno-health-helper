@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import MusicGenerator from '../../components/MusicGenerator';
+import dynamic from 'next/dynamic';
+const MusicGenerator = dynamic(() => import('../../components/MusicGenerator'), { ssr: false, loading: () => <div className="glass-card p-8 text-center animate-fade-in">로딩 중...</div> });
 import { EmotionData } from '../../lib/sunoAI';
 
 export default function MusicPage() {

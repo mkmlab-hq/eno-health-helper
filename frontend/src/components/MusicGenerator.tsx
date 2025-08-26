@@ -11,7 +11,7 @@ interface MusicGeneratorProps {
   onMusicGenerated?: (music: MusicGenerationResponse) => void;
 }
 
-export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicGeneratorProps) {
+function MusicGenerator({ emotionData, onMusicGenerated }: MusicGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [musicData, setMusicData] = useState<MusicGenerationResponse | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -373,4 +373,6 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
       )}
     </div>
   );
-} 
+}
+
+export default React.memo(MusicGenerator);

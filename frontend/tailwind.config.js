@@ -8,8 +8,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'orbitron': ['Orbitron', 'monospace'],
-        'noto': ['Noto Sans KR', 'sans-serif'],
+        'orbitron': ['var(--font-orbitron)', 'monospace'],
+        'noto': ['var(--font-noto)', 'sans-serif'],
       },
       colors: {
         'neon-cyan': '#00ffff',

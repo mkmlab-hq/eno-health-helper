@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
 import { Heart, Activity, Mic, Save, LogOut, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
@@ -37,7 +37,7 @@ export default function ResultPage() {
   // 로그아웃 함수 제거 (인증 없이 사용)
   // const handleLogout = async () => { ... };
 
-  const handleSaveResults = async () => {
+  const handleSaveResults = useCallback(async () => {
     // if (!metrics || !currentUser) return; // 인증 체크 제거
     
     setSaving(true);
@@ -50,9 +50,9 @@ export default function ResultPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [metrics]);
 
-  const getHealthColor = (value: string) => {
+  const getHealthColor = useCallback((value: string) => {
     switch (value) {
       case '양호':
       case '낮음':
@@ -65,7 +65,7 @@ export default function ResultPage() {
       default:
         return 'text-gray-400';
     }
-  };
+  }, []);
 
   // if (!currentUser) { // 인증 체크 제거
   //   return (

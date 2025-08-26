@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { QrCode, Camera, Mic, TrendingUp, Shield, Heart, Brain, Music, Palette } from 'lucide-react';
-import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+const MotionDiv = dynamic(() => import('@/components/utils/MotionDiv').then(m => m.MotionDiv), { ssr: false });
 import { apiClient } from '@/lib/api';
 
 export default function Home() {
@@ -121,12 +122,7 @@ export default function Home() {
         </div>
 
         {/* 핵심 기능 소개 */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="mb-16"
-        >
+        <MotionDiv className="mb-16">
           <h2 className="text-2xl font-semibold text-white mb-8">4대 핵심 기능</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {/* rPPG 건강 측정 */}
@@ -177,15 +173,10 @@ export default function Home() {
               <div className="mt-3 text-xs text-orange-400 font-medium">데이터-예술 융합</div>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
 
         {/* 사용 방법 */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.9 }}
-          className="mb-16"
-        >
+        <MotionDiv className="mb-16">
           <h2 className="text-2xl font-semibold text-white mb-8">사용 방법</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="text-center">
@@ -217,15 +208,10 @@ export default function Home() {
               <p className="text-gray-400 text-sm">결과 저장을 위해 간단한 회원가입을 진행하세요</p>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
 
         {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.2 }}
-          className="text-center"
-        >
+        <MotionDiv className="text-center">
           <h2 className="text-2xl font-semibold text-white mb-6">지금 바로 시작하세요</h2>
           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
             AI 기술로 정확하고 편리한 건강 측정을 경험하고, 당신만의 감정의 사운드트랙을 만들어보세요
@@ -242,7 +228,7 @@ export default function Home() {
               </a>
             )}
           </div>
-        </motion.div>
+        </MotionDiv>
       </main>
     </div>
   );
