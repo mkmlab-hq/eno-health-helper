@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
-import { Camera, Mic, Activity, LogOut, Play, Pause, RotateCcw } from 'lucide-react';
-
-type MeasurementStep = 'start' | 'face' | 'voice' | 'analyzing' | 'complete';
+import { Camera, Mic, Activity } from 'lucide-react';
 
 interface HealthResult {
   rppg_result: {
@@ -26,399 +23,545 @@ interface HealthResult {
 }
 
 export default function MeasurePage() {
-  const [currentStep, setCurrentStep] = useState<MeasurementStep>('start');
-  const [isRecording, setIsRecording] = useState(false);
-  const [faceData, setFaceData] = useState<Blob | null>(null);
-  const [voiceData, setVoiceData] = useState<Blob | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
+  const [isMeasuring, setIsMeasuring] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState<'ready' | 'face' | 'voice' | 'complete'>('ready');
   const [error, setError] = useState<string | null>(null);
-  // const { currentUser, logout } = useAuth(); // 인증 체크 제거
+  const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState({ requiredConsent: false, optionalConsent: false });
+  
+  // 실제 미디어 스트림 관련 상태
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isMicrophoneReady, setIsMicrophoneReady] = useState(false);
+  
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const measurementIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  
+  // 실제 데이터 수집용
+  const videoFramesRef = useRef<ImageData[]>([]);
   const audioChunksRef = useRef<Blob[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  // 로그아웃 함수 제거 (인증 없이 사용)
-  // const handleLogout = async () => {
-  //   try {
-  //     await logout();
-  //     router.push('/login');
-  //   } catch (error) {
-  //     console.error('Logout failed:', error);
-  //   }
-  // };
+  const TOTAL_DURATION = 35;
+  const FACE_SCAN_DURATION = 30;  // 30초 얼굴 스캔
+  const VOICE_SCAN_DURATION = 5;  // 5초 음성 측정
 
-  const startFaceMeasurement = useCallback(async () => {
+  // 카메라 초기화
+  const initializeCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      let retry = 0;
-      const assignStream = () => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          setCurrentStep('face');
-        } else if (retry < 10) {
-          retry++;
-          setTimeout(assignStream, 100);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: 640,
+          height: 480,
+          frameRate: 30
         }
-      };
-      assignStream();
-    } catch (error) {
-      console.error('Camera access failed:', error);
-      setError('카메라 접근에 실패했습니다.');
-    }
-  }, []);
-
-  const captureFace = useCallback(() => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            setFaceData(blob);
-            setCurrentStep('voice');
-          }
-        }, 'image/jpeg');
-      }
-    } else {
-      setError('카메라가 정상적으로 연결되지 않았습니다. 새로고침 후 다시 시도해 주세요.');
-    }
-  }, []);
-
-  const startVoiceMeasurement = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        setVoiceData(audioBlob);
-        setCurrentStep('analyzing');
-        performHealthAnalysis();
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Microphone access failed:', error);
-    }
-  }, []);
-
-  const stopVoiceMeasurement = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  }, [isRecording]);
-
-  const performHealthAnalysis = async () => {
-    if (!faceData || !voiceData) { // 인증 체크 제거
-      console.error('Required data missing for analysis');
-      return;
-    }
-
-    try {
-      setProgress(0);
+      });
       
-      // 진행률 시뮬레이션
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + Math.random() * 15;
-        });
-      }, 200);
+      setVideoStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          setIsCameraReady(true);
+        };
+      }
+    } catch (err) {
+      setError('카메라 접근 권한이 필요합니다.');
+      console.error('Camera error:', err);
+    }
+  }, []);
 
-      // Firebase 연동 백엔드 API 호출
-      const formData = new FormData();
-      formData.append('video_file', faceData, 'face_video.mp4');
-      formData.append('audio_file', voiceData, 'voice_audio.wav');
-      // formData.append('user_id', currentUser.uid); // 인증 체크 제거
+  // 마이크 초기화
+  const initializeMicrophone = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 48000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+      
+      setAudioStream(stream);
+      setIsMicrophoneReady(true);
+    } catch (err) {
+      setError('마이크 접근 권한이 필요합니다.');
+      console.error('Microphone error:', err);
+    }
+  }, []);
 
-      // 백엔드 서버로 직접 요청
-      const response = await fetch('http://localhost:8001/api/v1/measure/combined', {
+  // 비디오 프레임 캡처
+  const captureVideoFrame = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    ctx.drawImage(videoRef.current, 0, 0);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    videoFramesRef.current.push(imageData);
+  }, []);
+
+  // 오디오 녹음 시작
+  const startAudioRecording = useCallback(() => {
+    if (!audioStream) return;
+    
+    const mediaRecorder = new MediaRecorder(audioStream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+    
+    mediaRecorderRef.current = mediaRecorder;
+    audioChunksRef.current = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunksRef.current.push(event.data);
+      }
+    };
+    
+    mediaRecorder.start(100); // 100ms마다 청크 수집
+  }, [audioStream]);
+
+  // 오디오 녹음 중지
+  const stopAudioRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  // rPPG 분석 API 호출
+  const analyzeRPPG = useCallback(async (frames: ImageData[]) => {
+    try {
+      // 프레임을 base64로 변환
+      const frameData = frames.map(frame => {
+        const canvas = document.createElement('canvas');
+        canvas.width = frame.width;
+        canvas.height = frame.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.putImageData(frame, 0, 0);
+        return canvas.toDataURL('image/jpeg', 0.8);
+      });
+
+      const response = await fetch('http://localhost:8000/api/rppg/analyze', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          frames: frameData,
+          frame_rate: 30
+        })
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API 호출 실패: ${response.status} - ${errorData.detail || '알 수 없는 오류'}`);
+        throw new Error('rPPG 분석 실패');
       }
 
-      const result = await response.json();
-      setHealthResult(result);
-      setProgress(100);
-
-      // 분석 완료 후 결과 페이지로
-      setTimeout(() => {
-        setCurrentStep('complete');
-      }, 500);
-
-    } catch (error) {
-      console.error('Health analysis failed:', error);
-      setProgress(100);
-      
-      // 사용자 친화적 에러 메시지
-      let errorMessage = '건강 분석 중 오류가 발생했습니다.';
-      if (error instanceof Error) {
-        if (error.message.includes('API 호출 실패')) {
-          errorMessage = '백엔드 서버 연결에 실패했습니다. 서버 상태를 확인해주세요.';
-        } else if (error.message.includes('Required data missing')) {
-          errorMessage = '필요한 데이터가 누락되었습니다. 다시 측정해주세요.';
-        }
-      }
-      
-      // 에러 상태 설정 (UI에서 표시)
-      setError(errorMessage);
+      return await response.json();
+    } catch (err) {
+      console.error('rPPG analysis error:', err);
+      throw err;
     }
-  };
+  }, []);
 
-  const resetMeasurement = () => {
-    setCurrentStep('start');
-    setFaceData(null);
-    setVoiceData(null);
-    setProgress(0);
-    setIsRecording(false);
-  };
+  // 음성 분석 API 호출
+  const analyzeVoice = useCallback(async (audioBlob: Blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice_recording.webm');
 
-  const goToResults = () => {
+      const response = await fetch('http://localhost:8000/api/voice/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('음성 분석 실패');
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Voice analysis error:', err);
+      throw err;
+    }
+  }, []);
+
+  // 건강 점수 계산 API 호출
+  const calculateHealthScore = useCallback(async (rppgData: any, voiceData: any) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/health/calculate-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rppg_result: rppgData,
+          voice_result: voiceData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('건강 점수 계산 실패');
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Health score calculation error:', err);
+      throw err;
+    }
+  }, []);
+
+  // 실제 측정 시작
+  const startMeasurement = useCallback(async () => {
+    try {
+      setIsMeasuring(true);
+      setElapsedTime(0);
+      setCurrentPhase('face');
+      setError(null);
+      
+      // 데이터 초기화
+      videoFramesRef.current = [];
+      audioChunksRef.current = [];
+
+      // 카메라와 마이크 초기화
+      await initializeCamera();
+      await initializeMicrophone();
+
+      measurementIntervalRef.current = setInterval(() => {
+        setElapsedTime(prev => {
+          const newTime = prev + 1;
+          
+          if (newTime <= FACE_SCAN_DURATION) {
+            setCurrentPhase('face');
+            // 얼굴 프레임 캡처
+            captureVideoFrame();
+          } else if (newTime <= TOTAL_DURATION) {
+            if (newTime === FACE_SCAN_DURATION + 1) {
+              setCurrentPhase('voice');
+              // 음성 녹음 시작
+              startAudioRecording();
+            }
+          } else {
+            setCurrentPhase('complete');
+            return prev;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    } catch (err) {
+      setError('측정 시작 실패: ' + (err as Error).message);
+      setIsMeasuring(false);
+    }
+  }, [initializeCamera, initializeMicrophone, captureVideoFrame, startAudioRecording]);
+
+  // 측정 완료 및 결과 분석
+  const finishMeasurement = useCallback(async () => {
+    try {
+      if (measurementIntervalRef.current) {
+        clearInterval(measurementIntervalRef.current);
+        measurementIntervalRef.current = null;
+      }
+
+      // 음성 녹음 중지
+      stopAudioRecording();
+
+      // 결과 분석
+      const rppgResult = await analyzeRPPG(videoFramesRef.current);
+      const voiceResult = await analyzeVoice(new Blob(audioChunksRef.current));
+      const healthScore = await calculateHealthScore(rppgResult, voiceResult);
+
+      setHealthResult({
+        rppg_result: rppgResult,
+        voice_result: voiceResult,
+        health_score: healthScore.health_score,
+        measurement_id: healthScore.measurement_id
+      });
+
+      setIsMeasuring(false);
+      setCurrentPhase('complete');
+    } catch (err) {
+      setError('측정 완료 실패: ' + (err as Error).message);
+      setIsMeasuring(false);
+    }
+  }, [stopAudioRecording, analyzeRPPG, analyzeVoice, calculateHealthScore]);
+
+  const resetMeasurement = useCallback(() => {
+    setIsMeasuring(false);
+    setElapsedTime(0);
+    setCurrentPhase('ready');
+    setError(null);
+    setHealthResult(null);
+    
+    // 스트림 정리
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      setVideoStream(null);
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      setAudioStream(null);
+    }
+    
+    setIsCameraReady(false);
+    setIsMicrophoneReady(false);
+    
+    if (measurementIntervalRef.current) {
+      clearInterval(measurementIntervalRef.current);
+      measurementIntervalRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, [videoStream, audioStream]);
+
+  const goToResults = useCallback(() => {
     router.push('/result');
-  };
+  }, [router]);
 
-  // 인증 체크 제거
-  // if (!currentUser) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-  //       <div className="text-center">
-  //         <h1 className="text-2xl text-red-400 mb-4">접근 권한이 없습니다</h1>
-  //         <button onClick={() => router.push('/login')} className="btn-primary">
-  //           로그인하기
-  //         </button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (measurementIntervalRef.current) {
+        clearInterval(measurementIntervalRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [videoStream, audioStream]);
+
+  // 자동 완료
+  useEffect(() => {
+    if (elapsedTime >= TOTAL_DURATION) {
+      finishMeasurement();
+    }
+  }, [elapsedTime, finishMeasurement]);
+
+  const progress = (elapsedTime / TOTAL_DURATION) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-      {/* Header */}
-      <header className="glass-card m-4 p-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-orbitron font-bold neon-text">엔오건강도우미</h1>
-          <p className="text-gray-300 text-sm">안녕하세요, {/* {currentUser.email}님 */} 게스트님</p>
-        </div>
-        <button onClick={() => router.push('/login')} className="btn-secondary flex items-center space-x-2">
-          <LogOut className="w-4 h-4" />
-          <span>로그아웃</span>
-        </button>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-4">
-        {/* 에러 메시지 표시 */}
-        {error && (
-          <div className="glass-card p-4 mb-4 bg-red-900/20 border border-red-500/50 animate-fade-in">
-            <div className="flex items-center space-x-2 text-red-400">
-              <span className="text-lg">⚠️</span>
-              <span className="font-medium">{error}</span>
-            </div>
-            <button 
-              onClick={() => setError(null)} 
-              className="text-red-300 hover:text-red-100 text-sm mt-2"
-            >
-              닫기
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md mx-auto">
+        <div className="glass-card rounded-2xl p-6 text-center">
+          
+          {/* Header */}
+          <div className="mb-4">
+            <h1 className="text-2xl font-orbitron font-bold text-neon-cyan mb-2">엔오건강도우미</h1>
+            <p className="text-gray-300 text-sm">안녕하세요, 게스트님</p>
           </div>
-        )}
 
-        {currentStep === 'start' && (
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <h2 className="text-3xl font-orbitron font-bold neon-text mb-6">
-              고요 속의 메아리
+          {/* Status Display */}
+          <div className="mb-4">
+            <h2 id="status-title" className="text-2xl font-bold text-neon-cyan neon-glow">
+              {currentPhase === 'ready' && '건강 측정 준비'}
+              {currentPhase === 'face' && '얼굴 분석 중'}
+              {currentPhase === 'voice' && '음성 분석 중'}
+              {currentPhase === 'complete' && '분석 완료!'}
             </h2>
-            <p className="text-gray-300 mb-8 text-lg">
-              얼굴과 음성을 통해 정확한 건강 상태를 분석합니다<br/>
-              <span className="text-neon-cyan font-medium">따뜻한 기술, 직관적인 건강</span>
+            <p id="status-instruction" className="text-gray-300 mt-1">
+              {currentPhase === 'ready' && '측정을 시작하려면 아래 버튼을 눌러주세요.'}
+              {currentPhase === 'face' && `가이드라인에 얼굴을 맞춰주세요. (${FACE_SCAN_DURATION - elapsedTime}초)`}
+              {currentPhase === 'voice' && `편안하게 '아~' 소리를 내주세요. (${TOTAL_DURATION - elapsedTime}초)`}
+              {currentPhase === 'complete' && '결과를 확인하고 나만의 사운드트랙을 만들어보세요.'}
             </p>
-            <div className="mb-6 p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
-              <p className="text-neon-cyan text-sm">
-                💡 <strong>측정 방법:</strong><br/>
-                • 얼굴 측정: 카메라에 정면 응시 (30초)<br/>
-                • 음성 측정: "아~" 소리 5초간 지속<br/>
-                • AI 분석: 복용 전후 비교 가능
-              </p>
-            </div>
-            <button onClick={startFaceMeasurement} className="btn-primary text-xl px-8 py-4">
-              <Camera className="w-6 h-6 mr-2 inline" />
-              측정 시작하기
-            </button>
           </div>
-        )}
 
-        {currentStep === 'face' && (
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
-              얼굴 측정 단계
-            </h2>
-            <p className="text-gray-300 mb-6">
-              <span className="text-neon-cyan font-medium">카메라에 얼굴을 비추세요 (30초)</span><br/>
-              정면을 바라보고 정지 상태를 유지해주세요
-            </p>
+          {/* Visualizer */}
+          <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden mb-4">
+            {/* Face Scan Phase */}
+            {currentPhase === 'face' && (
+              <>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                <div className="face-guideline active"></div>
+                {!isCameraReady && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <span className="text-neon-cyan">카메라 초기화 중...</span>
+                  </div>
+                )}
+              </>
+            )}
             
-            <div className="relative max-w-md mx-auto mb-6">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full rounded-lg border-2 border-neon-cyan"
-              />
-              <div className="absolute inset-0 border-4 border-neon-cyan rounded-lg animate-pulse-slow"></div>
-              <div className="absolute top-2 right-2 bg-neon-cyan/80 text-black px-2 py-1 rounded text-sm font-medium">
-                RPPG 측정
-              </div>
-            </div>
-
-            <div className="mb-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
-              <p className="text-neon-cyan text-sm">
-                🔍 <strong>측정 중:</strong> 미세한 색상 변화를 분석하여 심박수와 스트레스 수준을 측정합니다
-              </p>
-            </div>
-
-            <div className="flex space-x-4 justify-center">
-              <button onClick={captureFace} className="btn-primary">
-                <Camera className="w-5 h-5 mr-2" />
-                촬영하기
-              </button>
-              <button onClick={resetMeasurement} className="btn-secondary">
-                <RotateCcw className="w-5 h-5 mr-2" />
-                다시 시작
-              </button>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'voice' && (
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
-              음성 측정 단계
-            </h2>
-            <p className="text-gray-300 mb-6">
-              <span className="text-neon-cyan font-medium">5초 동안 '아~' 발음을 해주세요</span><br/>
-              마이크에 명확하게 소리를 내주세요
-            </p>
-            
-            <div className="mb-6">
-              <div className="w-24 h-24 mx-auto bg-glass rounded-full flex items-center justify-center border-2 border-neon-cyan">
-                <Mic className={`w-12 h-12 ${isRecording ? 'text-red-400 animate-pulse' : 'text-neon-cyan'}`} />
-              </div>
-              {isRecording && (
-                <div className="mt-2 text-red-400 text-sm animate-pulse">
-                  🎤 녹음 중... (5초)
+            {/* Voice Scan Phase */}
+            {currentPhase === 'voice' && (
+              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                <div className="text-center">
+                  <Mic className="w-16 h-16 text-neon-cyan mx-auto mb-2" />
+                  <p className="text-neon-cyan">음성 녹음 중...</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {isMicrophoneReady ? '마이크 준비 완료' : '마이크 초기화 중...'}
+                  </p>
                 </div>
-              )}
+              </div>
+            )}
+            
+            {/* Ready/Complete Phase */}
+            {(currentPhase === 'ready' || currentPhase === 'complete') && (
+              <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
+                <span className="text-gray-500">
+                  {currentPhase === 'ready' ? '카메라 준비 중...' : '측정 완료!'}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-700/50 rounded-full h-4 mb-6">
+            <div 
+              className="bg-gradient-to-r from-neon-cyan to-neon-sky h-4 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+
+          {/* Control Button */}
+          <button 
+            onClick={currentPhase === 'complete' ? goToResults : () => setShowConsentModal(true)}
+            disabled={isMeasuring}
+            className={`w-full font-bold py-4 px-6 rounded-lg transition-all duration-300 shadow-lg text-xl ${
+              currentPhase === 'complete'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                : isMeasuring
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-75'
+                : 'bg-gradient-to-r from-neon-cyan to-neon-sky hover:from-neon-sky hover:to-neon-cyan text-gray-900 hover:shadow-neon-cyan/50'
+            }`}
+          >
+            {currentPhase === 'ready' && '35초 측정 시작하기'}
+            {isMeasuring && '측정 중...'}
+            {currentPhase === 'complete' && '결과 보기'}
+          </button>
+
+          {/* Reset Button (when measuring) */}
+          {isMeasuring && (
+            <button 
+              onClick={resetMeasurement}
+              className="w-full mt-3 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
+            >
+              측정 중단
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="fixed top-4 left-4 right-4 bg-red-900/20 border border-red-500/50 rounded-lg p-4 animate-fade-in">
+          <div className="flex items-center space-x-2 text-red-400">
+            <span className="text-lg">⚠️</span>
+            <span className="font-medium">{error}</span>
+          </div>
+          <button 
+            onClick={() => setError(null)} 
+            className="text-red-300 hover:text-red-100 text-sm mt-2"
+          >
+            닫기
+          </button>
+        </div>
+      )}
+
+      {/* 개인정보보호 동의 모달 */}
+      {showConsentModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="glass-card p-8 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-2xl font-bold text-neon-cyan mb-6 text-center">
+              🛡️ 개인정보보호 동의
+            </h3>
+            
+            <div className="space-y-4 mb-6">
+              {/* 필수 동의 항목 */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="modal-required-consent"
+                  checked={privacyConsent.requiredConsent}
+                  onChange={(e) => setPrivacyConsent(prev => ({ ...prev, requiredConsent: e.target.checked }))}
+                  className="mt-1 w-5 h-5 bg-gray-800 border-gray-600 text-neon-cyan focus:ring-neon-cyan rounded"
+                />
+                <div className="flex-1">
+                  <label htmlFor="modal-required-consent" className="font-medium text-white cursor-pointer">
+                    필수 동의 항목
+                  </label>
+                  <p className="text-sm text-gray-400 mt-1">
+                    얼굴 영상, 음성 데이터 수집 및 분석, 측정 결과 저장
+                  </p>
+                </div>
+              </div>
+              
+              {/* 선택 동의 항목 */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="modal-optional-consent"
+                  checked={privacyConsent.optionalConsent}
+                  onChange={(e) => setPrivacyConsent(prev => ({ ...prev, optionalConsent: e.target.checked }))}
+                  className="mt-1 w-5 h-5 bg-gray-800 border-gray-600 text-neon-cyan focus:ring-neon-cyan rounded"
+                />
+                <div className="flex-1">
+                  <label htmlFor="modal-optional-consent" className="font-medium text-white cursor-pointer">
+                    선택 동의 항목
+                  </label>
+                  <p className="text-sm text-gray-400 mt-1">
+                    개인 맞춤 건강 조언, 서비스 개선을 위한 데이터 활용
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="mb-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
-              <p className="text-neon-cyan text-sm">
-                🎵 <strong>음성 분석:</strong> Jitter, Shimmer 등 음성 품질 지표를 통해 건강 상태를 평가합니다
-              </p>
-            </div>
-
+            {/* 동의 후 측정 시작 버튼 */}
             <div className="flex space-x-4 justify-center">
-              {!isRecording ? (
-                <button onClick={startVoiceMeasurement} className="btn-primary">
-                  <Play className="w-5 h-5 mr-2" />
-                  녹음 시작
-                </button>
-              ) : (
-                <button onClick={stopVoiceMeasurement} className="btn-secondary">
-                  <Pause className="w-5 h-5 mr-2" />
-                  녹음 중지
-                </button>
-              )}
-              <button onClick={resetMeasurement} className="btn-secondary">
-                <RotateCcw className="w-5 h-5 mr-2" />
-                다시 시작
+              <button
+                onClick={() => setShowConsentModal(false)}
+                className="btn-secondary px-6 py-3"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  if (privacyConsent.requiredConsent) {
+                    setShowConsentModal(false);
+                    startMeasurement();
+                  }
+                }}
+                disabled={!privacyConsent.requiredConsent}
+                className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 ${
+                  privacyConsent.requiredConsent
+                    ? 'bg-gradient-to-r from-neon-cyan to-neon-sky hover:from-neon-sky hover:to-neon-cyan text-gray-900 shadow-lg hover:shadow-neon-cyan/50'
+                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {privacyConsent.requiredConsent ? '동의하고 측정 시작' : '필수 동의 후 측정 가능'}
               </button>
             </div>
-          </div>
-        )}
 
-        {currentStep === 'analyzing' && (
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
-              AI 분석 중...
-            </h2>
-            <p className="text-gray-300 mb-6">
-              <span className="text-neon-cyan font-medium">따뜻한 기술</span>이 건강 데이터를 분석하고 있습니다<br/>
-              잠시만 기다려주세요
+            {/* 개인정보보호 관련 안내 */}
+            <p className="text-xs text-gray-500 text-center mt-4">
+              모든 데이터는 비식별 처리되어 안전하게 관리됩니다.
             </p>
-            
-            <div className="mb-6">
-              <div className="w-24 h-24 mx-auto bg-glass rounded-full flex items-center justify-center border-2 border-neon-cyan">
-                <Activity className="w-12 h-12 text-neon-cyan animate-pulse" />
-              </div>
-            </div>
-
-            <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
-              <div 
-                className="bg-gradient-to-r from-neon-cyan to-neon-sky h-3 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <p className="text-neon-cyan font-medium">{Math.round(progress)}%</p>
-            
-            <div className="mt-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
-              <p className="text-neon-cyan text-sm">
-                🧠 <strong>분석 내용:</strong> rPPG + 음성 분석을 통한 종합 건강 평가
-              </p>
-            </div>
           </div>
-        )}
-
-        {currentStep === 'complete' && (
-          <div className="glass-card p-8 text-center animate-fade-in">
-            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
-              측정 완료!
-            </h2>
-            <p className="text-gray-300 mb-6">
-              <span className="text-neon-cyan font-medium">직관적인 건강</span> 분석이 완료되었습니다<br/>
-              복용 전후 비교를 통해 건강 변화를 체감하세요
-            </p>
-            
-            <div className="mb-6">
-              <div className="w-24 h-24 mx-auto bg-green-500 rounded-full flex items-center justify-center">
-                <Activity className="w-12 h-12 text-white" />
-              </div>
-            </div>
-
-            <div className="mb-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-              <p className="text-green-400 text-sm">
-                🎯 <strong>다음 단계:</strong> 측정 결과를 확인하고 건강 가이드를 받아보세요
-              </p>
-            </div>
-
-            <button onClick={goToResults} className="btn-primary text-xl px-8 py-4">
-              결과 보기
-            </button>
-          </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

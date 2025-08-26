@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Link from 'next/link';
 export default function LandingPage() {
@@ -27,9 +26,9 @@ export default function LandingPage() {
             <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
               MKM Lab은 전통 사상의학을 최첨단 AI 기술로 재해석하여, 당신의 고유한 건강 상태를 정밀하게 분석하고 초개인화된 솔루션을 제공합니다.
             </p>
-            <a href="#products" className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full text-lg transition-transform transform hover:scale-105">
+            <Link href="/measure" className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full text-lg transition-transform transform hover:scale-105">
               서비스 바로가기
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -64,9 +63,9 @@ export default function LandingPage() {
                 <div className="text-4xl mb-4">🩺</div>
                 <h3 className="text-2xl font-bold text-white mb-2">엔오건강도우미</h3>
                 <p className="text-gray-400 flex-grow mb-6">AI rPPG와 음성 분석을 통해 당신의 건강 상태를 35초 만에 측정하고 모니터링합니다.</p>
-                <Link href="/fusion-analysis" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition text-center">
+                <a href="https://eno.no1kmedi.com" target="_blank" rel="noopener noreferrer" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition text-center">
                   측정 시작하기
-                </Link>
+                </a>
               </div>
               {/* Persona Diary */}
               <div className="glassmorphism p-8 rounded-xl flex flex-col items-center">
@@ -98,28 +97,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* 스타일 */}
-      <style jsx global>{`
-        body {
-          font-family: 'Noto Sans KR', sans-serif;
-          background-color: #020617;
-          color: #e2e8f0;
-        }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .glassmorphism {
-          background: rgba(15, 23, 42, 0.5);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(56, 189, 248, 0.1);
-        }
-        .hero-bg {
-          background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
-        }
-        .feature-card:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
-        }
-      `}</style>
+
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet" />

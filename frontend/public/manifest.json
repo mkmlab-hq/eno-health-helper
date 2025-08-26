@@ -1,16 +1,15 @@
 {
-  "name": "엔오건강도우미",
-  "short_name": "엔오건강도우미",
-  "description": "엔오플렉스 건강기능식품 전용 동반 서비스",
+  "name": "ENO Health Helper",
+  "short_name": "ENO Health",
+  "description": "AI 기반 건강 측정 및 분석 도우미",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00d4ff",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "ko",
-  "dir": "ltr",
-  "categories": ["health", "medical", "lifestyle"],
+  "categories": ["health", "medical", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -65,11 +64,11 @@
     {
       "name": "건강 측정",
       "short_name": "측정",
-      "description": "RPPG + 음성 분석으로 건강 측정",
-      "url": "/measurement",
+      "description": "건강 측정 시작",
+      "url": "/measure",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/measure-96x96.png",
           "sizes": "96x96"
         }
       ]
@@ -77,14 +76,54 @@
     {
       "name": "결과 확인",
       "short_name": "결과",
-      "description": "측정 결과 및 웰니스 가이드",
-      "url": "/results",
+      "description": "측정 결과 확인",
+      "url": "/result",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/result-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "대시보드",
+      "short_name": "대시보드",
+      "description": "건강 변화 추이 확인",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/dashboard-96x96.png",
           "sizes": "96x96"
         }
       ]
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/measure-screen.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "건강 측정 화면"
+    },
+    {
+      "src": "/screenshots/result-screen.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "측정 결과 화면"
+    },
+    {
+      "src": "/screenshots/dashboard-screen.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "건강 대시보드"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 } 

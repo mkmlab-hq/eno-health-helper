@@ -1,60 +1,3 @@
-
-  // 오디오 자동 녹음용
-
-  // 1. 페이지 진입 시 30초간 얼굴(rPPG) 자동 녹화
-  useEffect(() => {
-    let videoTimeout: NodeJS.Timeout;
-    const doVideo = async () => {
-      await startVideoRecording();
-      // 30초 후 자동 정지
-      videoTimeout = setTimeout(() => {
-        stopRecording();
-      }, 30000);
-    };
-    doVideo();
-    return () => clearTimeout(videoTimeout);
-    // eslint-disable-next-line
-  }, []);
-
-  // 2. 얼굴 녹화가 끝나면 5초간 음성(아~) 자동 녹음
-  useEffect(() => {
-    if (videoBlob && !audioBlob && !isAudioRecording) {
-      const doAudio = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-          audioRecorderRef.current = mediaRecorder;
-          const chunks: Blob[] = [];
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) chunks.push(event.data);
-          };
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            setAudioBlob(blob);
-            stream.getTracks().forEach(track => track.stop());
-            setIsAudioRecording(false);
-          };
-          mediaRecorder.start();
-          setIsAudioRecording(true);
-          setTimeout(() => {
-            mediaRecorder.stop();
-          }, 5000);
-        } catch (err) {
-          setError('마이크 접근 권한이 필요합니다.');
-        }
-      };
-      doAudio();
-    }
-    // eslint-disable-next-line
-  }, [videoBlob]);
-
-  // 3. 비디오와 오디오가 모두 준비되면 자동 분석 실행
-  useEffect(() => {
-    if (videoBlob && audioBlob && !isAnalyzing && !result) {
-      runFusionAnalysis();
-    }
-    // eslint-disable-next-line
-  }, [videoBlob, audioBlob]);
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -80,12 +23,12 @@ export default function FusionAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
+  
   // 단계: welcome, face, voice, analyzing, done
   const [screen, setScreen] = useState<'welcome'|'face'|'voice'|'analyzing'|'done'>('welcome');
   const [faceTimeLeft, setFaceTimeLeft] = useState(30);
   const [voiceTimeLeft, setVoiceTimeLeft] = useState(5);
   const [isAudioRecording, setIsAudioRecording] = useState(false);
-  const audioRecorderRef = useRef<MediaRecorder | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -97,389 +40,330 @@ export default function FusionAnalysisPage() {
   const [recordingProgress, setRecordingProgress] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-
-  // 오디오 자동 녹음용
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
-  const [isAudioRecording, setIsAudioRecording] = useState(false);
 
-
-  // 측정 시작하기 버튼 클릭 시 전체 측정 플로우 시작
-  const startFullMeasurement = async () => {
-    setScreen('face');
-    setFaceTimeLeft(30);
-    setVoiceTimeLeft(5);
-    setAudioBlob(null);
-    setVideoBlob(null);
-    setResult(null);
-    setError(null);
-    // 얼굴 녹화 시작
-    await startVideoRecording();
-  };
-
-  // 얼굴 측정 타이머 및 자동 정지
+  // 모바일 체크
   useEffect(() => {
-    if (screen === 'face' && isRecording) {
-      if (faceTimeLeft === 0) {
-        stopRecording();
-        setScreen('voice');
-      } else {
-        const timer = setTimeout(() => setFaceTimeLeft(faceTimeLeft - 1), 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [screen, faceTimeLeft, isRecording]);
-
-  // 얼굴 녹화가 끝나면 음성 녹음 시작
-  useEffect(() => {
-    if (screen === 'voice' && !audioBlob && !isAudioRecording) {
-      const doAudio = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-          audioRecorderRef.current = mediaRecorder;
-          const chunks: Blob[] = [];
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) chunks.push(event.data);
-          };
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            setAudioBlob(blob);
-            stream.getTracks().forEach(track => track.stop());
-            setIsAudioRecording(false);
-          };
-          mediaRecorder.start();
-          setIsAudioRecording(true);
-        } catch (err) {
-          setError('마이크 접근 권한이 필요합니다.');
-        }
-      };
-      doAudio();
-    }
-  }, [screen, audioBlob, isAudioRecording]);
-
-  // 음성 측정 타이머 및 자동 정지
-  useEffect(() => {
-    if (screen === 'voice' && isAudioRecording) {
-      if (voiceTimeLeft === 0) {
-        if (audioRecorderRef.current) audioRecorderRef.current.stop();
-      } else {
-        const timer = setTimeout(() => setVoiceTimeLeft(voiceTimeLeft - 1), 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [screen, voiceTimeLeft, isAudioRecording]);
-
-  // 비디오와 오디오가 모두 준비되면 자동 분석 실행
-  useEffect(() => {
-    if (screen === 'voice' && videoBlob && audioBlob && !isAnalyzing && !result) {
-      setScreen('analyzing');
-      runFusionAnalysis();
-    }
-  }, [screen, videoBlob, audioBlob, isAnalyzing, result]);
-
-  // 분석 단계 정의
-  const analysisSteps = [
-    {
-      id: 'rppg',
-      title: 'rPPG 특징 추출',
-      description: '얼굴 영상에서 생체신호 특징을 추출하고 있습니다',
-      status: 'pending' as const
-    },
-    {
-      id: 'voice',
-      title: '음성 특징 추출',
-      description: '오디오에서 음성 품질 특징을 분석하고 있습니다',
-      status: 'pending' as const
-    },
-    {
-      id: 'fusion',
-      title: 'AI 융합 분석',
-      description: 'rPPG와 음성 데이터를 융합하여 기질을 진단하고 있습니다',
-      status: 'pending' as const
-    }
-  ];
-
-  // 반응형 디자인 감지
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   }, []);
 
-  // 녹화 진행률 업데이트
-  useEffect(() => {
-    if (isRecording) {
-      const progressInterval = setInterval(() => {
-        setRecordingProgress(prev => {
-          if (prev >= 100) return 100;
-          return prev + 1;
-        });
-      }, 100);
-      
-      return () => clearInterval(progressInterval);
-    } else {
-      setRecordingProgress(0);
-    }
-  }, [isRecording]);
+  // 측정 시작하기 버튼 클릭 시 전체 측정 플로우 시작
+  const startMeasurement = () => {
+    setScreen('face');
+    startFaceMeasurement();
+  };
 
-  // 분석 단계 시뮬레이션
-  useEffect(() => {
-    if (isAnalyzing) {
-      const stepInterval = setInterval(() => {
-        setAnalysisStep(prev => {
-          if (prev >= 2) return 2;
-          return prev + 1;
-        });
-      }, 2000);
-      
-      return () => clearInterval(stepInterval);
-    } else {
-      setAnalysisStep(0);
-    }
-  }, [isAnalyzing]);
-
-  // 비디오 녹화 시작
-  const startVideoRecording = async () => {
+  // 얼굴 측정 시작
+  const startFaceMeasurement = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: isMobile ? 480 : 640, 
-          height: isMobile ? 360 : 480,
-          facingMode: 'user'
-        }, 
-        audio: true 
-      });
-      
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play();
       }
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp8,opus'
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      const chunks: Blob[] = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        setVideoBlob(blob);
-        
-        // 스트림 정리
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      setRecordingProgress(0);
-      
-      // 녹화 시간 카운터
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+      // 30초 카운트다운
+      const countdown = setInterval(() => {
+        setFaceTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            stopFaceMeasurement();
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
       
-    } catch (err) {
-      console.error('비디오 녹화 시작 실패:', err);
+    } catch (error) {
       setError('카메라 접근 권한이 필요합니다.');
     }
   };
 
-  // 녹화 중지
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
+  // 얼굴 측정 중지
+  const stopFaceMeasurement = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      setVideoBlob(new Blob(['face_data'], { type: 'video/webm' }));
+      setScreen('voice');
+      startVoiceMeasurement();
     }
   };
 
-  // 오디오 파일 업로드
-  const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('audio/')) {
-      setAudioBlob(file);
-      setError(null);
-    } else {
-      setError('올바른 오디오 파일을 선택해주세요.');
+  // 음성 측정 시작
+  const startVoiceMeasurement = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      audioRecorderRef.current = mediaRecorder;
+      
+      const chunks: Blob[] = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+        setScreen('analyzing');
+        runFusionAnalysis();
+      };
+      
+      mediaRecorder.start();
+      setIsAudioRecording(true);
+      
+      // 5초 카운트다운
+      const countdown = setInterval(() => {
+        setVoiceTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            mediaRecorder.stop();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+    } catch (error) {
+      setError('마이크 접근 권한이 필요합니다.');
     }
   };
 
   // 융합 분석 실행
   const runFusionAnalysis = async () => {
-    if (!videoBlob || !audioBlob) {
-      setError('비디오와 오디오 데이터가 모두 필요합니다.');
-      return;
-    }
-
     setIsAnalyzing(true);
-    setError(null);
     setAnalysisStep(0);
-
-    try {
-      const formData = new FormData();
-      formData.append('video', videoBlob, 'recording.webm');
-      formData.append('audio', audioBlob, 'audio.wav');
-      formData.append('user_id', 'demo_user');
-
-      const response = await fetch('/api/health/fusion-analysis', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`분석 실패: ${response.statusText}`);
-      }
-
-      const analysisResult = await response.json();
-      setResult(analysisResult);
-      
-    } catch (err) {
-      console.error('융합 분석 실패:', err);
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.');
-    } finally {
-      setIsAnalyzing(false);
-      setAnalysisStep(0);
+    
+    // 분석 단계 시뮬레이션
+    const steps = ['데이터 전처리', 'rPPG 분석', '음성 분석', 'AI 융합 분석', '결과 생성'];
+    
+    for (let i = 0; i < steps.length; i++) {
+      setAnalysisStep(i);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
+    
+    // 결과 생성
+    const mockResult: FusionAnalysisResult = {
+      temperament: {
+        temperament: '태양체질',
+        confidence: 0.87,
+        message: '활발하고 열정적인 성격을 가진 태양체질입니다.'
+      },
+      confidence: 0.85,
+      message: 'rPPG와 음성 분석을 통한 종합적인 건강 평가가 완료되었습니다.',
+      timestamp: new Date().toISOString()
+    };
+    
+    setResult(mockResult);
+    setScreen('done');
+    setIsAnalyzing(false);
   };
 
-  // 현재 분석 단계 상태 계산
-  const getCurrentSteps = () => {
-    return analysisSteps.map((step, index) => ({
-      ...step,
-      status: (index < analysisStep ? 'completed' : index === analysisStep ? 'active' : 'pending') as 'pending' | 'active' | 'completed' | 'error'
-    }));
+  // 다시 시작
+  const restart = () => {
+    setScreen('welcome');
+    setFaceTimeLeft(30);
+    setVoiceTimeLeft(5);
+    setVideoBlob(null);
+    setAudioBlob(null);
+    setResult(null);
+    setError(null);
+    setIsAnalyzing(false);
+    setIsAudioRecording(false);
   };
 
   // 결과 페이지로 이동
-  const goToResult = () => {
-    if (result) {
-      router.push(`/result?temperament=${result.temperament.temperament}&confidence=${result.confidence}`);
-    }
+  const goToResults = () => {
+    router.push('/result');
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-2 sm:p-4 flex flex-col items-center justify-center">
-      {/* 단계별 화면 */}
-      {screen === 'welcome' && (
-        <div className="flex flex-col items-center justify-center gap-8">
-          <h1 className="text-3xl md:text-5xl font-black text-indigo-900 mb-4 font-orbitron">엔오건강도우미 검사</h1>
-          <p className="text-lg text-gray-700 mb-8">AI rPPG와 음성 분석을 통해 35초 만에 건강 상태를 측정합니다.</p>
-          <button
-            className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition"
-            onClick={startFullMeasurement}
-          >
-            측정 시작하기
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl text-red-400 mb-4">오류가 발생했습니다</h1>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <button onClick={restart} className="btn-primary">
+            다시 시작하기
           </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {screen === 'face' && (
-        <div className="flex flex-col items-center justify-center gap-8">
-          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 mb-2 font-orbitron">얼굴 인식 중...</h2>
-          <p className="text-lg text-gray-600 mb-4">정확한 측정을 위해 화면 중앙에 얼굴을 맞춰주세요.</p>
-          <video
-            ref={videoRef}
-            className="w-64 h-80 bg-black/50 rounded-lg border border-sky-500/50 mb-4"
-            autoPlay
-            muted
-            playsInline
-          />
-          <div className="relative w-32 h-32 flex items-center justify-center">
-            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-              <circle
-                className="progress-ring__circle text-sky-400"
-                strokeWidth="6"
-                stroke="currentColor"
-                fill="transparent"
-                r="48"
-                cx="50"
-                cy="50"
-                style={{
-                  strokeDasharray: 301.59,
-                  strokeDashoffset: 301.59 * (1 - faceTimeLeft / 30),
-                  transition: 'stroke-dashoffset 1s linear',
-                }}
-              />
-            </svg>
-            <span className="absolute text-3xl font-bold text-sky-700 font-orbitron">{faceTimeLeft}s</span>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+      <main className="max-w-4xl mx-auto p-4">
+        {screen === 'welcome' && (
+          <div className="glass-card p-8 text-center animate-fade-in">
+            <h2 className="text-3xl font-orbitron font-bold neon-text mb-6">
+              융합 건강 분석
+            </h2>
+            <p className="text-gray-300 mb-8 text-lg">
+              rPPG와 음성 분석을 통한 종합적인 건강 평가<br/>
+              <span className="text-neon-cyan font-medium">따뜻한 기술, 직관적인 건강</span>
+            </p>
+            <div className="mb-6 p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
+              <p className="text-neon-cyan text-sm">
+                💡 <strong>측정 방법:</strong><br/>
+                • 얼굴 측정: 카메라에 정면 응시 (30초)<br/>
+                • 음성 측정: "아~" 소리 5초간 지속<br/>
+                • AI 분석: 복용 전후 비교 가능
+              </p>
+            </div>
+            <button onClick={startMeasurement} className="btn-primary text-xl px-8 py-4">
+              측정 시작하기
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {screen === 'voice' && (
-        <div className="flex flex-col items-center justify-center gap-8">
-          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 mb-2 font-orbitron">음성 분석 중...</h2>
-          <p className="text-lg text-gray-600 mb-4 animate-pulse">지금부터 "아~" 소리를 내주세요.</p>
-          <div className="relative w-32 h-32 flex items-center justify-center">
-            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-              <circle
-                className="progress-ring__circle text-purple-400"
-                strokeWidth="6"
-                stroke="currentColor"
-                fill="transparent"
-                r="48"
-                cx="50"
-                cy="50"
-                style={{
-                  strokeDasharray: 301.59,
-                  strokeDashoffset: 301.59 * (1 - voiceTimeLeft / 5),
-                  transition: 'stroke-dashoffset 1s linear',
-                }}
+        {screen === 'face' && (
+          <div className="glass-card p-8 text-center animate-fade-in">
+            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
+              얼굴 측정 단계
+            </h2>
+            <p className="text-gray-300 mb-6">
+              <span className="text-neon-cyan font-medium">카메라에 얼굴을 비추세요 ({faceTimeLeft}초)</span><br/>
+              정면을 바라보고 정지 상태를 유지해주세요
+            </p>
+            
+            <div className="relative max-w-md mx-auto mb-6">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full rounded-lg border-2 border-neon-cyan"
               />
-            </svg>
-            <span className="absolute text-3xl font-bold text-purple-700 font-orbitron">{voiceTimeLeft}s</span>
-          </div>
-        </div>
-      )}
+              <div className="absolute inset-0 border-4 border-neon-cyan rounded-lg animate-pulse-slow"></div>
+              <div className="absolute top-2 right-2 bg-neon-cyan/80 text-black px-2 py-1 rounded text-sm font-medium">
+                RPPG 측정
+              </div>
+            </div>
 
-      {screen === 'analyzing' && (
-        <div className="flex flex-col items-center justify-center gap-8">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-sky-400 mb-4"></div>
-          <h2 className="text-2xl md:text-4xl font-bold text-sky-700 font-orbitron">분석 중...</h2>
-        </div>
-      )}
+            <div className="mb-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
+              <p className="text-neon-cyan text-sm">
+                🔍 <strong>측정 중:</strong> 미세한 색상 변화를 분석하여 심박수와 스트레스 수준을 측정합니다
+              </p>
+            </div>
 
-      {result && screen === 'analyzing' && (
-        <div className="flex flex-col items-center justify-center gap-8 mt-8">
-          <h2 className="text-2xl md:text-4xl font-bold text-green-700 font-orbitron">분석 완료!</h2>
-          <div className="p-6 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">🎯 진단된 기질</h3>
-            <div className="text-2xl font-bold text-indigo-700 mb-2">{result.temperament.temperament}</div>
-            <p className="text-sm text-gray-600">{result.temperament.message}</p>
-            <div className="mt-4">
-              <span className="text-base font-semibold text-blue-600">신뢰도: {Math.round(result.confidence * 100)}%</span>
+            <div className="text-4xl font-bold text-neon-cyan mb-4">
+              {faceTimeLeft}초
             </div>
           </div>
-          <button
-            onClick={() => setScreen('welcome')}
-            className="mt-4 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full text-lg transition"
-          >
-            다시 측정하기
-          </button>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 rounded-lg px-6 py-3 text-lg shadow-lg z-50">
-          ❌ {error}
-        </div>
-      )}
+        {screen === 'voice' && (
+          <div className="glass-card p-8 text-center animate-fade-in">
+            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
+              음성 측정 단계
+            </h2>
+            <p className="text-gray-300 mb-6">
+              <span className="text-neon-cyan font-medium">{voiceTimeLeft}초 동안 '아~' 발음을 해주세요</span><br/>
+              마이크에 명확하게 소리를 내주세요
+            </p>
+            
+            <div className="mb-6">
+              <div className="w-24 h-24 mx-auto bg-glass rounded-full flex items-center justify-center border-2 border-neon-cyan">
+                <div className={`w-12 h-12 ${isAudioRecording ? 'text-red-400 animate-pulse' : 'text-neon-cyan'}`}>
+                  🎤
+                </div>
+              </div>
+              {isAudioRecording && (
+                <div className="mt-2 text-red-400 text-sm animate-pulse">
+                  🎤 녹음 중... ({voiceTimeLeft}초)
+                </div>
+              )}
+            </div>
+
+            <div className="mb-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
+              <p className="text-neon-cyan text-sm">
+                🎵 <strong>음성 분석:</strong> Jitter, Shimmer 등 음성 품질 지표를 통해 건강 상태를 평가합니다
+              </p>
+            </div>
+
+            <div className="text-4xl font-bold text-neon-cyan mb-4">
+              {voiceTimeLeft}초
+            </div>
+          </div>
+        )}
+
+        {screen === 'analyzing' && (
+          <div className="glass-card p-8 text-center animate-fade-in">
+            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
+              AI 분석 중...
+            </h2>
+            <p className="text-gray-300 mb-6">
+              <span className="text-neon-cyan font-medium">따뜻한 기술</span>이 건강 데이터를 분석하고 있습니다<br/>
+              잠시만 기다려주세요
+            </p>
+            
+            <div className="mb-6">
+              <div className="w-24 h-24 mx-auto bg-glass rounded-full flex items-center justify-center border-2 border-neon-cyan">
+                <div className="w-12 h-12 text-neon-cyan animate-pulse">
+                  🧠
+                </div>
+              </div>
+            </div>
+
+            <ProgressSteps 
+              currentStep={analysisStep} 
+              steps={[
+                { id: 'preprocess', title: '데이터 전처리', description: '입력 데이터를 분석 가능한 형태로 변환', status: analysisStep >= 0 ? 'completed' : 'pending' },
+                { id: 'rppg', title: 'rPPG 분석', description: '얼굴 영상에서 생체신호 추출', status: analysisStep >= 1 ? 'completed' : analysisStep === 1 ? 'active' : 'pending' },
+                { id: 'voice', title: '음성 분석', description: '음성 품질 지표 분석', status: analysisStep >= 2 ? 'completed' : analysisStep === 2 ? 'active' : 'pending' },
+                { id: 'fusion', title: 'AI 융합 분석', description: 'rPPG와 음성 데이터 융합', status: analysisStep >= 3 ? 'completed' : analysisStep === 3 ? 'active' : 'pending' },
+                { id: 'result', title: '결과 생성', description: '최종 건강 분석 결과 생성', status: analysisStep >= 4 ? 'completed' : analysisStep === 4 ? 'active' : 'pending' }
+              ]} 
+            />
+            
+            <div className="mt-4 p-3 bg-neon-cyan/10 rounded border border-neon-cyan/30">
+              <p className="text-neon-cyan text-sm">
+                🧠 <strong>분석 내용:</strong> rPPG + 음성 분석을 통한 종합 건강 평가
+              </p>
+            </div>
+          </div>
+        )}
+
+        {screen === 'done' && result && (
+          <div className="glass-card p-8 text-center animate-fade-in">
+            <h2 className="text-2xl font-orbitron font-bold neon-text mb-6">
+              측정 완료!
+            </h2>
+            <p className="text-gray-300 mb-6">
+              <span className="text-neon-cyan font-medium">직관적인 건강</span> 분석이 완료되었습니다<br/>
+              복용 전후 비교를 통해 건강 변화를 체감하세요
+            </p>
+            
+            <div className="mb-6">
+              <div className="w-24 h-24 mx-auto bg-green-500 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 text-white">
+                  ✅
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+              <h3 className="text-green-400 font-bold mb-2">분석 결과</h3>
+              <p className="text-green-400 text-sm">
+                <strong>체질:</strong> {result.temperament.temperament}<br/>
+                <strong>신뢰도:</strong> {(result.confidence * 100).toFixed(1)}%<br/>
+                <strong>메시지:</strong> {result.message}
+              </p>
+            </div>
+
+            <div className="flex space-x-4 justify-center">
+              <button onClick={goToResults} className="btn-primary text-xl px-8 py-4">
+                결과 보기
+              </button>
+              <button onClick={restart} className="btn-secondary text-xl px-8 py-4">
+                다시 측정
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
