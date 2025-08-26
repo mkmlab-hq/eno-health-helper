@@ -2,8 +2,9 @@
   "name": "엔오건강도우미",
   "short_name": "엔오건강도우미",
   "description": "엔오플렉스 건강기능식품 전용 동반 서비스",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
@@ -66,7 +67,7 @@
       "name": "건강 측정",
       "short_name": "측정",
       "description": "RPPG + 음성 분석으로 건강 측정",
-      "url": "/measurement",
+      "url": "/measure/",
       "icons": [
         {
           "src": "/icons/icon-96x96.png",
@@ -78,7 +79,7 @@
       "name": "결과 확인",
       "short_name": "결과",
       "description": "측정 결과 및 웰니스 가이드",
-      "url": "/results",
+      "url": "/result/",
       "icons": [
         {
           "src": "/icons/icon-96x96.png",
@@ -86,5 +87,7 @@
         }
       ]
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "id": "/?eno-health-helper"
 } 

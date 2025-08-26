@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { QrCode, Camera, Mic, TrendingUp, Shield, Heart, Brain, Music, Palette } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 
 export default function Home() {
@@ -35,7 +35,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,191,255,0.1),transparent_50%)]"></div>
       
       {/* 네비게이션 */}
-      <nav className="fixed top-0 w-full bg-black/20 backdrop-blur-md border-b border-blue-500/30 z-50">
+      <nav className="fixed top-0 w-full bg-black/30 backdrop-blur-md border-b border-blue-500/30 z-50 safe-pt">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -79,21 +79,21 @@ export default function Home() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8 pt-24">
+      <main className="max-w-4xl mx-auto px-4 py-6 pt-24 safe-pb">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
             엔오플렉스와 함께하는<br />
             <span className="text-blue-400">건강한 변화</span>
           </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
             복용 전후 생체신호 변화를 측정하여 개인화된 웰니스 가이드를 제공합니다.
             QR 코드를 스캔하고 건강 측정을 시작해보세요.
           </p>
         </div>
 
         {/* QR Scanner Section */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 max-w-md mx-auto mb-12">
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 max-w-md mx-auto mb-10">
           <div className="text-center mb-6">
             <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <QrCode className="w-10 h-10 text-blue-400" />
@@ -106,18 +106,30 @@ export default function Home() {
             </p>
           </div>
           
-          {!productId ? (
-            <button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
-              <QrCode className="w-5 h-5 mr-2 inline" />
-              QR 스캔 시작
-            </button>
-          ) : (
-            <div className="text-center">
-              <div className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg mb-4 border border-green-500/30">
-                ✅ 제품 인식 완료
-              </div>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {!productId ? (
+              <motion.button
+                key="scan"
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 active:from-blue-600 active:to-cyan-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200"
+              >
+                <QrCode className="w-5 h-5 mr-2 inline" />
+                QR 스캔 시작
+              </motion.button>
+            ) : (
+              <motion.div
+                key="recognized"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center"
+              >
+                <div className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg mb-4 border border-green-500/30">
+                  ✅ 제품 인식 완료
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* 핵심 기능 소개 */}
@@ -128,9 +140,9 @@ export default function Home() {
           className="mb-16"
         >
           <h2 className="text-2xl font-semibold text-white mb-8">4대 핵심 기능</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
             {/* rPPG 건강 측정 */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all duration-300">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 transition-colors duration-300">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4">
                 <Heart className="w-6 h-6 text-white" />
               </div>
@@ -142,7 +154,7 @@ export default function Home() {
             </div>
 
             {/* 음성 품질 분석 */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all duration-300">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 transition-colors duration-300">
               <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-4">
                 <Music className="w-6 h-6 text-white" />
               </div>
@@ -154,7 +166,7 @@ export default function Home() {
             </div>
 
             {/* AI 기반 '기질' 분석 */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all duration-300">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 transition-colors duration-300">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
                 <Brain className="w-6 h-6 text-white" />
               </div>
@@ -166,7 +178,7 @@ export default function Home() {
             </div>
 
             {/* AI 생성 '감정의 사운드트랙' */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-blue-500/30 transition-all duration-300">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 transition-colors duration-300">
               <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4">
                 <Palette className="w-6 h-6 text-white" />
               </div>
@@ -187,7 +199,7 @@ export default function Home() {
           className="mb-16"
         >
           <h2 className="text-2xl font-semibold text-white mb-8">사용 방법</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-white">1</span>
@@ -231,15 +243,15 @@ export default function Home() {
             AI 기술로 정확하고 편리한 건강 측정을 경험하고, 당신만의 감정의 사운드트랙을 만들어보세요
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/fusion-analysis" className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105">
+            <motion.a whileTap={{ scale: 0.98 }} href="/fusion-analysis" className="inline-flex items-center px-7 sm:px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl transition-colors duration-200">
               <Heart className="w-5 h-5 mr-2" />
               무료로 시작하기
-            </a>
+            </motion.a>
             {currentUser && (
-              <a href="/dashboard" className="inline-flex items-center px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition-all duration-300">
+              <motion.a whileTap={{ scale: 0.98 }} href="/dashboard" className="inline-flex items-center px-7 sm:px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition-colors duration-200">
                 <TrendingUp className="w-5 h-5 mr-2" />
                 나의 건강 기록
-              </a>
+              </motion.a>
             )}
           </div>
         </motion.div>

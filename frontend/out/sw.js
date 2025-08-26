@@ -1,5 +1,6 @@
 // 엔오건강도우미 PWA 서비스 워커
-const CACHE_NAME = 'eno-health-helper-v1.0.0';
+const CACHE_NAME = 'eno-health-helper-v1.1.0';
+const OFFLINE_URL = '/offline.html';
 const urlsToCache = [
   '/',
   '/measurement',
@@ -7,7 +8,8 @@ const urlsToCache = [
   '/tracking',
   '/manifest.json',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  OFFLINE_URL
 ];
 
 // 서비스 워커 설치
@@ -33,40 +35,58 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 // 네트워크 요청 가로채기
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // 캐시에서 찾으면 반환
-        if (response) {
-          return response;
-        }
-        
-        // 네트워크 요청
-        return fetch(event.request).then(
-          (response) => {
-            // 유효한 응답이 아니면 그대로 반환
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+  const { request } = event;
+  // Only handle GET
+  if (request.method !== 'GET') return;
+
+  // HTML navigation requests: Network-first with offline fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match(OFFLINE_URL);
+        })
+    );
+    return;
+  }
+
+  // For same-origin static assets: Stale-while-revalidate
+  if (request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const networkFetch = fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const copy = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
             }
+            return networkResponse;
+          })
+          .catch(() => cached);
 
-            // 응답을 복제하여 캐시에 저장
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
+        return cached || networkFetch;
       })
-  );
+    );
+  }
+});
+
+// Support manual skipWaiting from client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // 백그라운드 동기화 (오프라인 데이터 동기화)
