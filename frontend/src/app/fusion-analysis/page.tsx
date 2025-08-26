@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from './components/LoadingSpinner';
 import ProgressSteps from './components/ProgressSteps';
 
 interface FusionAnalysisResult {
@@ -18,10 +17,8 @@ interface FusionAnalysisResult {
 
 export default function FusionAnalysisPage() {
   const router = useRouter();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<FusionAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   
   // 단계: welcome, face, voice, analyzing, done
@@ -31,20 +28,11 @@ export default function FusionAnalysisPage() {
   const [isAudioRecording, setIsAudioRecording] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [recordingProgress, setRecordingProgress] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
 
   // 모바일 체크
   useEffect(() => {
-    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    // setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   }, []);
 
   // 측정 시작하기 버튼 클릭 시 전체 측정 플로우 시작
@@ -84,7 +72,7 @@ export default function FusionAnalysisPage() {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
-      setVideoBlob(new Blob(['face_data'], { type: 'video/webm' }));
+      // setVideoBlob(new Blob(['face_data'], { type: 'video/webm' })); // This line was removed
       setScreen('voice');
       startVoiceMeasurement();
     }
@@ -103,8 +91,6 @@ export default function FusionAnalysisPage() {
       };
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioBlob(blob);
         stream.getTracks().forEach(track => track.stop());
         setScreen('analyzing');
         runFusionAnalysis();
@@ -132,7 +118,7 @@ export default function FusionAnalysisPage() {
 
   // 융합 분석 실행
   const runFusionAnalysis = async () => {
-    setIsAnalyzing(true);
+    // setIsAnalyzing(true); // This line was removed
     setAnalysisStep(0);
     
     // 분석 단계 시뮬레이션
@@ -157,7 +143,7 @@ export default function FusionAnalysisPage() {
     
     setResult(mockResult);
     setScreen('done');
-    setIsAnalyzing(false);
+    // setIsAnalyzing(false); // This line was removed
   };
 
   // 다시 시작
@@ -165,11 +151,11 @@ export default function FusionAnalysisPage() {
     setScreen('welcome');
     setFaceTimeLeft(30);
     setVoiceTimeLeft(5);
-    setVideoBlob(null);
-    setAudioBlob(null);
+    // setVideoBlob(null); // This line was removed
+    // setAudioBlob(null); // This line was removed
     setResult(null);
     setError(null);
-    setIsAnalyzing(false);
+    // setIsAnalyzing(false); // This line was removed
     setIsAudioRecording(false);
   };
 

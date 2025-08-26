@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Play, Pause, Download, Music, Heart, Brain, Sparkles, Eye, Code } from 'lucide-react';
 import { EmotionData } from '../lib/sunoAI';
 import SunoAIClient, { MusicGenerationResponse } from '../lib/sunoAI';
@@ -57,7 +57,7 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
       // 단계별 진행 시뮬레이션
       for (let i = 0; i < steps.length; i++) {
         setCurrentStep(i);
-        setProgress(prev => [...prev, steps[i]]);
+        setProgress(prev => [...prev, steps[i] || '']);
         
         // 실제 Suno AI API 호출 (3단계에서)
         if (i === 2) {

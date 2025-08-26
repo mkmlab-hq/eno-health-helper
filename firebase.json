@@ -3,25 +3,22 @@
     "database": "(default)",
     "location": "asia-northeast3",
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "indexes": "firebase.indexes.json"
   },
-  "hosting": [
-    {
-      "target": "eno-no1kmedi-com",
-      "public": "frontend/out",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ]
-    }
-  ],
+  "hosting": {
+    "public": "deploy-ready",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "functions": {
     "source": "functions"
   }

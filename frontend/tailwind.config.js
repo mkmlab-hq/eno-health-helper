@@ -7,29 +7,26 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        'neon-cyan': '#00d4ff',
+        'neon-sky': '#0ea5e9',
+        'glass-dark': 'rgba(255, 255, 255, 0.08)',
+      },
       fontFamily: {
         'orbitron': ['Orbitron', 'monospace'],
-        'noto': ['Noto Sans KR', 'sans-serif'],
-      },
-      colors: {
-        'neon-cyan': '#00ffff',
-        'neon-sky': '#87ceeb',
-        'glass': 'rgba(255, 255, 255, 0.1)',
-        'glass-dark': 'rgba(0, 0, 0, 0.2)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'neon-glow': 'neonGlow 2s ease-in-out infinite alternate',
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+        neonGlow: {
+          '0%': { textShadow: '0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.6)' },
+          '100%': { textShadow: '0 0 15px rgba(0, 212, 255, 1), 0 0 25px rgba(0, 212, 255, 0.8)' },
         },
       },
       backdropBlur: {

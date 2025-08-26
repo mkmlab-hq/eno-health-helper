@@ -4,7 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>엔오건강도우미 - 건강 측정 v6 (개인정보보호 강화)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+         <script src="https://cdn.tailwindcss.com"></script>
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <!-- Firebase SDK -->
+     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+     <!-- Kakao SDK -->
+     <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+     <script>
+         // Gemini API 설정
+         const GEMINI_API_KEY = 'AIzaSyA9VEvkeCqUO4je5G2eILmQSS-eWQRy4vc';
+         const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+         
+         // Firebase 설정
+         const firebaseConfig = {
+             apiKey: "AIzaSyA9VEvkeCqUO4je5G2eILmQSS-eWQRy4vc",
+             authDomain: "eno-health-helper.firebaseapp.com",
+             projectId: "eno-health-helper",
+             storageBucket: "eno-health-helper.appspot.com",
+             messagingSenderId: "123456789",
+             appId: "1:123456789:web:abcdef123456"
+         };
+         
+         // Firebase 초기화
+         firebase.initializeApp(firebaseConfig);
+         
+         // Kakao 초기화
+         Kakao.init('YOUR_KAKAO_APP_KEY'); // 실제 Kakao 앱 키로 교체 필요
+         
+         console.log('✅ Firebase 및 Kakao SDK가 초기화되었습니다!');
+     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
@@ -91,11 +120,43 @@
             cursor: not-allowed;
             opacity: 0.5;
         }
+        
+        /* 점수 원형 표시 스타일 */
+        .score-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            background: conic-gradient(#0ea5e9 0% var(--score, 0%), transparent var(--score, 0%) 100%);
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
+        }
     </style>
 </head>
 <body class="text-white flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-md mx-auto glassmorphism rounded-2xl shadow-2xl neon-glow text-center relative overflow-hidden min-h-[650px]">
+
+        <!-- 헤더: 게스트 사용자 정보 -->
+        <div class="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
+            <div class="text-left">
+                <p class="text-sm text-gray-300">안녕하세요, 게스트님</p>
+            </div>
+            <div class="flex space-x-2">
+                                 <button id="header-login-btn" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded-lg transition-colors">
+                     로그인
+                 </button>
+            </div>
+        </div>
 
         <!-- 1. 시작 화면 -->
         <div id="welcome-screen" class="screen active flex-grow justify-center items-center">
@@ -210,41 +271,116 @@
 
         <!-- 5. 상세 결과 화면 -->
         <div id="result-screen" class="screen flex-grow justify-center items-start text-left">
-            <h2 class="text-3xl font-bold mb-6 text-sky-300 font-orbitron">측정 결과</h2>
-            <div class="w-full glassmorphism rounded-lg p-6 space-y-4 mb-6">
-                <div>
-                    <p class="text-sm text-gray-400">종합 건강 활력 점수</p>
-                    <p class="text-4xl font-bold text-white font-orbitron">82 <span class="text-xl font-normal text-gray-300">점</span></p>
+            <div class="w-full">
+                                 <!-- Header -->
+                 <header class="text-center mb-8">
+                     <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-sky-300 font-orbitron neon-glow mb-3">AI 건강 분석 결과</h2>
+                     <p class="text-sm sm:text-base lg:text-lg text-gray-300">2025년 8월 27일 09:00 측정</p>
+                 </header>
+
+                                 <!-- Main Results -->
+                 <div class="w-full glassmorphism rounded-2xl p-4 sm:p-6 mb-6">
+                     <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-6 text-center">종합 건강 대시보드</h3>
+                                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center">
+                         <!-- Score Circle -->
+                         <div class="flex justify-center mb-6 lg:mb-0">
+                             <div class="score-circle glassmorphism w-40 h-40 lg:w-48 lg:h-48" style="--score: 82%">
+                                 <div class="text-center">
+                                     <p class="text-3xl lg:text-4xl xl:text-5xl font-black text-white font-orbitron">82</p>
+                                     <p class="text-xs lg:text-sm xl:text-base font-semibold text-sky-400">종합 점수</p>
+                                 </div>
+                             </div>
+                         </div>
+                         <!-- Radar Chart -->
+                         <div class="h-48 lg:h-64 xl:h-80 w-full">
+                             <canvas id="coreMetricsChart"></canvas>
+                         </div>
+                     </div>
+
+                                         <!-- Sasang Constitution -->
+                     <div class="mt-8 text-center">
+                         <h4 class="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-4">AI 분석: 당신의 사상체질 (추정)</h4>
+                         <div id="sasang-type-display" class="inline-block bg-sky-500/20 text-sky-300 font-bold py-3 px-6 rounded-full mt-4 text-base sm:text-lg lg:text-xl">
+                             분석 중...
+                         </div>
+                         <p id="sasang-description" class="text-gray-300 max-w-xl mx-auto mt-4 text-sm sm:text-base">
+                             생체 신호를 분석하여 사상체질을 분류하고 있습니다...
+                         </p>
+                         <div id="sasang-confidence" class="text-sm text-sky-400 mt-2">
+                             신뢰도: 계산 중...
+                         </div>
+                     </div>
+                    
+                                         <!-- Health Advice -->
+                     <div id="health-advice-section" class="mt-6 hidden">
+                         <h5 class="text-lg sm:text-xl font-bold text-white mb-4 text-center">체질별 건강 조언</h5>
+                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                             <div class="bg-slate-800/50 p-3 lg:p-4 rounded-lg">
+                                 <h6 class="font-semibold text-sky-300 mb-2 text-center lg:text-left text-sm lg:text-base">🏃‍♂️ 운동</h6>
+                                 <p id="exercise-advice" class="text-gray-300 text-center lg:text-left text-sm lg:text-base leading-relaxed"></p>
+                             </div>
+                             <div class="bg-slate-800/50 p-3 lg:p-4 rounded-lg">
+                                 <h6 class="font-semibold text-sky-300 mb-2 text-center lg:text-left text-sm lg:text-base">🍽️ 식이</h6>
+                                 <p id="diet-advice" class="text-gray-300 text-center lg:text-left text-sm lg:text-base leading-relaxed"></p>
+                             </div>
+                             <div class="bg-slate-800/50 p-3 lg:p-4 rounded-lg sm:col-span-2 lg:col-span-1">
+                                 <h6 class="font-semibold text-sky-300 mb-2 text-center lg:text-left text-sm lg:text-base">💡 생활</h6>
+                                 <p id="lifestyle-advice" class="text-gray-300 text-center lg:text-left text-sm lg:text-base leading-relaxed"></p>
+                             </div>
+                         </div>
+                     </div>
+                    
+                                         <!-- Details Accordion -->
+                     <div class="mt-6">
+                         <details class="bg-slate-800/50 rounded-lg">
+                             <summary class="p-4 cursor-pointer font-semibold text-white text-base sm:text-lg">상세 생체 지표 보기</summary>
+                             <div class="p-4 border-t border-sky-500/20">
+                                 <table class="w-full text-sm sm:text-base text-left">
+                                    <thead class="text-sm sm:text-base text-sky-400 uppercase font-semibold">
+                                         <tr><th class="py-3 px-2">구분</th><th class="py-3 px-2">지표</th><th class="py-3 px-2">측정값</th><th class="py-3 px-2">상태</th></tr>
+                                    </thead>
+                                    <tbody class="text-gray-300">
+                                         <tr class="border-b border-gray-700"><td rowspan="4" class="py-3 px-2 font-semibold text-sky-200">rPPG (얼굴)</td><td class="py-2 px-2">심박수</td><td class="py-2 px-2">68 BPM</td><td class="py-2 px-2 text-green-400 font-medium">안정</td></tr>
+                                         <tr class="border-b border-gray-700"><td class="py-2 px-2">혈압 (추정)</td><td class="py-2 px-2">115/75 mmHg</td><td class="py-2 px-2 text-green-400 font-medium">정상</td></tr>
+                                         <tr class="border-b border-gray-700"><td class="py-2 px-2">스트레스 지수</td><td class="py-2 px-2">25 (낮음)</td><td class="py-2 px-2 text-green-400 font-medium">안정</td></tr>
+                                         <tr class="border-b border-gray-700"><td class="py-2 px-2">심박변이도(HRV)</td><td class="py-2 px-2">55 ms</td><td class="py-2 px-2 text-green-400 font-medium">좋음</td></tr>
+                                         <tr class="border-b border-gray-700"><td rowspan="3" class="py-3 px-2 font-semibold text-sky-200">음성</td><td class="py-2 px-2">Jitter (주파수 변동률)</td><td class="py-2 px-2">0.8%</td><td class="py-2 px-2 text-green-400 font-medium">안정</td></tr>
+                                         <tr class="border-b border-gray-700"><td class="py-2 px-2">Shimmer (진폭 변동률)</td><td class="py-2 px-2">2.5%</td><td class="py-2 px-2 text-green-400 font-medium">안정</td></tr>
+                                         <tr><td class="py-2 px-2">HNR (배음 대 잡음비)</td><td class="py-2 px-2">22 dB</td><td class="py-2 px-2 text-green-400 font-medium">좋음</td></tr>
+                                    </tbody>
+                                 </table>
+                             </div>
+                         </details>
+                     </div>
+                    
+                                         <!-- AI Q&A Section -->
+                     <div class="mt-6 glassmorphism rounded-2xl p-4 lg:p-6">
+                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                             <h5 class="text-lg lg:text-xl font-bold text-white">🤖 AI에게 건강 질문하기</h5>
+                             <span class="text-xs lg:text-sm font-semibold bg-yellow-500/20 text-yellow-300 py-1 px-3 rounded-full">10회 무료</span>
+                         </div>
+                         <div id="ai-answer" class="bg-slate-800/50 p-3 lg:p-4 rounded-lg min-h-[80px] text-gray-300 mb-4">
+                             <p class="text-sm lg:text-base">안녕하세요! 당신의 건강 데이터와 체질에 대해 궁금한 점을 무엇이든 물어보세요. 예를 들어, "제 스트레스 지수가 낮은 편인가요?" 또는 "소양인 체질에 좋은 음식은?" 같은 질문을 할 수 있습니다.</p>
+                         </div>
+                         <div class="flex flex-col lg:flex-row gap-3 lg:gap-4">
+                             <textarea id="user-question" class="w-full lg:flex-1 bg-slate-800/50 p-3 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-sky-500 focus:outline-none resize-none text-sm lg:text-base" rows="3" placeholder="여기에 질문을 입력하세요..."></textarea>
+                             <button id="send-question-btn" class="w-full lg:w-auto bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:from-sky-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-sky-500/50 self-end text-sm lg:text-base">
+                                 전송
+                             </button>
+                         </div>
+                     </div>
                 </div>
-                <hr class="border-slate-700">
-                <div class="space-y-3">
-                    <p class="font-bold text-gray-200">❤️ 건강 지표 (rPPG 분석)</p>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-400">평균 심박수 (HR)</span>
-                        <span class="font-bold text-white">68 bpm</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-400">심박 변이도 (HRV)</span>
-                        <span class="font-bold text-green-400">55 ms (안정)</span>
-                    </div>
-                </div>
-                <hr class="border-slate-700">
-                <div class="space-y-3">
-                    <p class="font-bold text-gray-200">🎙️ 음성 지표 (음성 분석)</p>
-                     <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-400">음성 주파수 (Pitch)</span>
-                        <span class="font-bold text-white">130 Hz (안정적 톤)</span>
-                    </div>
-                </div>
+
+                                                                   <!-- Action Buttons -->
+                  <div class="flex flex-col lg:flex-row gap-3 lg:gap-4">
+                       <button id="signup-btn" class="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg hover:from-sky-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-sky-500/50 text-sm lg:text-base">
+                          기록 저장하기 (회원가입)
+                       </button>
+                       <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-lg transition-colors duration-300 text-sm lg:text-base">
+                          다시 측정하기
+                       </button>
+                  </div>
             </div>
-            <!-- 회원가입 유도 -->
-            <div class="w-full bg-sky-900/50 border border-sky-700 rounded-lg p-4 text-center mb-6">
-                <p class="font-bold text-sky-200 mb-2">결과를 저장하고 변화를 추적하세요!</p>
-                <p class="text-xs text-sky-300">회원가입 시, 과거 기록과 비교하고 더 상세한 건강 관리 솔루션을 제공받을 수 있습니다.</p>
-            </div>
-            <button id="signup-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all">
-                회원가입하고 기록 관리하기
-            </button>
         </div>
 
         <!-- 6. 인증 화면 -->
@@ -253,21 +389,20 @@
                 <h2 class="text-2xl font-bold text-white text-center mb-6 font-orbitron">시작하기</h2>
                 
                 <div class="space-y-4">
-                    <button class="w-full flex items-center justify-center space-x-2 bg-white text-black font-bold py-3 rounded-lg transition hover:bg-gray-200">
-                        <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M6.306 14.691L22.669 29.835c-2.133 1.866-4.962 3-8.169 3c-6.627 0-12-5.373-12-12c0-2.933 1.045-5.624 2.796-7.789l-5.495-5.495A19.954 19.954 0 0 0 4 24c0 6.959 3.548 13.014 8.951 16.639l-7.645-7.645z"></path><path fill="#FBBC05" d="M22.669 18.165l-5.657 5.657C16.154 26.158 16 27.042 16 28s.154 1.842.331 2.669l5.657-5.657l-5.656-5.657z"></path><path fill="#EA4335" d="M43.611 20.083L24 40l-5.657-5.657c2.118-1.866 3.849-4.421 4.669-7.331H42v-8z"></path></svg>
-                        <span>Google 계정으로 계속하기</span>
-                    </button>
-                    <div class="relative flex py-2 items-center">
-                        <div class="flex-grow border-t border-gray-600"></div>
-                        <span class="flex-shrink mx-4 text-gray-400">또는</span>
-                        <div class="flex-grow border-t border-gray-600"></div>
-                    </div>
-                    <input type="email" placeholder="이메일" class="w-full p-3 bg-slate-800 rounded text-white placeholder-gray-500"/>
-                    <input type="password" placeholder="비밀번호" class="w-full p-3 bg-slate-800 rounded text-white placeholder-gray-500"/>
-                    <div class="flex space-x-4">
-                        <button class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-lg transition">로그인</button>
-                        <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition">회원가입</button>
-                    </div>
+                                         <button id="google-login-btn" class="w-full flex items-center justify-center space-x-2 bg-white text-black font-bold py-3 rounded-lg transition hover:bg-gray-200">
+                         <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M6.306 14.691L22.669 29.835c-2.133 1.866-4.962 3-8.169 3c-6.627 0-12-5.373-12-12c0-2.933 1.045-5.624 2.796-7.789l-5.495-5.495A19.954 19.954 0 0 0 4 24c0 6.959 3.548 13.014 8.951 16.639l-7.645-7.645z"></path><path fill="#FBBC05" d="M22.669 18.165l-5.657 5.657C16.154 26.158 16 27.042 16 28s.154 1.842.331 2.669l5.657-5.657l-5.656-5.657z"></path><path fill="#EA4335" d="M43.611 20.083L24 40l-5.657-5.657c2.118-1.866 3.849-4.421 4.669-7.331H42v-8z"></path></svg>
+                         <span>Google 계정으로 1초 가입</span>
+                     </button>
+                     <button id="kakao-login-btn" class="w-full flex items-center justify-center space-x-2 bg-yellow-400 text-black font-bold py-3 rounded-lg transition hover:bg-yellow-500">
+                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                             <path d="M12 3C6.48 3 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10c0-5.52-4.48-10-10-10zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                         </svg>
+                         <span>카카오톡으로 1초 가입</span>
+                     </button>
+                                         <div class="text-center mt-6">
+                         <p class="text-sm text-gray-400 mb-2">⚡ 1초 만에 가입하고 건강 기록을 저장하세요</p>
+                         <p class="text-xs text-gray-500">이메일과 비밀번호 없이도 안전하게 서비스를 이용할 수 있습니다</p>
+                     </div>
                 </div>
             </div>
         </div>
@@ -301,6 +436,252 @@
 
     // 측정 결과를 임시 저장할 변수
     let currentMeasurementResult = null;
+    
+    // 사상체질 분류 시스템
+    const SASANG_TYPES = {
+        SOYANG: { name: '소양인 (少陽人)', hanja: '少陽人', description: '활발하고 열정적인 성격으로, 상승하는 기운이 강합니다.' },
+        SOEUM: { name: '소음인 (少陰人)', hanja: '少陰人', description: '차분하고 신중한 성격으로, 내향적이지만 깊은 사고를 합니다.' },
+        TAEYANG: { name: '태양인 (太陽人)', hanja: '太陽人', description: '강렬하고 리더십이 강한 성격으로, 확산하는 기운이 강합니다.' },
+        TAEUM: { name: '태음인 (太陰人)', hanja: '太陰人', description: '안정적이고 균형잡힌 성격으로, 수렴하는 기운이 강합니다.' }
+    };
+    
+    // 사상체질 분류 함수
+    function classifySasangType(measurementData) {
+        const { hr, hrv, stress, jitter, shimmer, hnr } = measurementData;
+        
+        // 각 체질별 점수 계산
+        let scores = {
+            [SASANG_TYPES.SOYANG.name]: 0,
+            [SASANG_TYPES.SOEUM.name]: 0,
+            [SASANG_TYPES.TAEYANG.name]: 0,
+            [SASANG_TYPES.TAEUM.name]: 0
+        };
+        
+        // 심박수 기반 분류 (높을수록 양성 체질)
+        if (hr > 75) {
+            scores[SASANG_TYPES.SOYANG.name] += 3;
+            scores[SASANG_TYPES.TAEYANG.name] += 2;
+        } else if (hr < 65) {
+            scores[SASANG_TYPES.SOEUM.name] += 3;
+            scores[SASANG_TYPES.TAEUM.name] += 2;
+        } else {
+            scores[SASANG_TYPES.TAEUM.name] += 3;
+            scores[SASANG_TYPES.SOEUM.name] += 1;
+        }
+        
+        // HRV 기반 분류 (높을수록 안정적)
+        if (hrv > 60) {
+            scores[SASANG_TYPES.TAEUM.name] += 3;
+            scores[SASANG_TYPES.SOEUM.name] += 2;
+        } else if (hrv < 40) {
+            scores[SASANG_TYPES.SOYANG.name] += 2;
+            scores[SASANG_TYPES.TAEYANG.name] += 1;
+        }
+        
+        // 스트레스 지수 기반 분류
+        if (stress < 30) {
+            scores[SASANG_TYPES.TAEUM.name] += 2;
+            scores[SASANG_TYPES.SOEUM.name] += 1;
+        } else if (stress > 70) {
+            scores[SASANG_TYPES.SOYANG.name] += 2;
+            scores[SASANG_TYPES.TAEYANG.name] += 1;
+        }
+        
+        // 음성 안정성 기반 분류
+        if (jitter < 1.0 && shimmer < 2.0) {
+            scores[SASANG_TYPES.TAEUM.name] += 2;
+            scores[SASANG_TYPES.SOEUM.name] += 1;
+        } else if (jitter > 3.0 || shimmer > 4.0) {
+            scores[SASANG_TYPES.SOYANG.name] += 1;
+            scores[SASANG_TYPES.TAEYANG.name] += 1;
+        }
+        
+        // HNR 기반 분류
+        if (hnr > 20) {
+            scores[SASANG_TYPES.TAEUM.name] += 1;
+            scores[SASANG_TYPES.SOEUM.name] += 1;
+        }
+        
+        // 가장 높은 점수의 체질 반환
+        let maxScore = 0;
+        let classifiedType = SASANG_TYPES.TAEUM.name;
+        
+        for (const [type, score] of Object.entries(scores)) {
+            if (score > maxScore) {
+                maxScore = score;
+                classifiedType = type;
+            }
+        }
+        
+        return {
+            type: classifiedType,
+            confidence: Math.min(95, maxScore * 15), // 신뢰도 계산
+            scores: scores
+        };
+    }
+    
+    // 사상체질별 건강 조언 생성
+    function generateHealthAdvice(sasangType) {
+        const adviceMap = {
+            [SASANG_TYPES.SOYANG.name]: {
+                exercise: '가벼운 유산소 운동과 명상으로 과열된 기운을 조절하세요.',
+                diet: '시원한 성질의 음식을 섭취하고, 매운 음식은 줄이세요.',
+                lifestyle: '충분한 휴식과 수분 섭취가 중요합니다.'
+            },
+            [SASANG_TYPES.SOEUM.name]: {
+                exercise: '가벼운 스트레칭과 산책으로 기운을 순환시키세요.',
+                diet: '따뜻한 성질의 음식을 섭취하고, 생냉한 음식은 피하세요.',
+                lifestyle: '규칙적인 생활과 충분한 수면이 필요합니다.'
+            },
+            [SASANG_TYPES.TAEYANG.name]: {
+                exercise: '격렬한 운동보다는 요가나 태극권으로 기운을 조절하세요.',
+                diet: '시원하고 맑은 성질의 음식을 섭취하세요.',
+                lifestyle: '과로를 피하고 적절한 휴식이 중요합니다.'
+            },
+            [SASANG_TYPES.TAEUM.name]: {
+                exercise: '균형잡힌 운동으로 기운의 순환을 돕는 것이 좋습니다.',
+                diet: '다양한 영양소를 골고루 섭취하세요.',
+                lifestyle: '규칙적인 생활과 적당한 운동이 건강에 도움이 됩니다.'
+            }
+        };
+        
+        return adviceMap[sasangType] || adviceMap[SASANG_TYPES.TAEUM.name];
+    }
+    
+    // AI 질문 처리 시스템
+    let questionCount = 0;
+    const MAX_FREE_QUESTIONS = 10;
+    
+    // 체질별 맞춤 추천 데이터
+    const PERSONALIZED_RECOMMENDATIONS = {
+        [SASANG_TYPES.SOYANG.name]: {
+            foods: ['삼계탕', '닭고기', '차가운 성질의 음식', '녹차', '민트'],
+            activities: ['가벼운 유산소', '명상', '요가', '수분 섭취'],
+            avoid: ['매운 음식', '과식', '격렬한 운동', '과열된 환경']
+        },
+        [SASANG_TYPES.SOEUM.name]: {
+            foods: ['삼계탕', '따뜻한 성질의 음식', '생강차', '홍차', '견과류'],
+            activities: ['가벼운 스트레칭', '산책', '명상', '규칙적인 생활'],
+            avoid: ['생냉한 음식', '과로', '불규칙한 생활', '과도한 운동']
+        },
+        [SASANG_TYPES.TAEYANG.name]: {
+            foods: ['시원한 성질의 음식', '녹차', '과일', '채소', '해산물'],
+            activities: ['요가', '태극권', '가벼운 운동', '명상'],
+            avoid: ['과로', '격렬한 운동', '매운 음식', '과식']
+        },
+        [SASANG_TYPES.TAEUM.name]: {
+            foods: ['균형잡힌 식단', '다양한 영양소', '적당한 양', '신선한 재료'],
+            activities: ['균형잡힌 운동', '규칙적인 생활', '적당한 휴식', '스트레스 관리'],
+            avoid: ['과식', '과로', '불규칙한 생활', '극단적인 다이어트']
+        }
+    };
+    
+    // Gemini API 호출 함수
+    async function callGeminiAPI(question, userData) {
+        try {
+            // 사용자 데이터를 요약하여 토큰 사용량 최소화
+            const userContext = {
+                sasangType: userData.sasangType,
+                healthMetrics: {
+                    heartRate: userData.hr + ' BPM',
+                    hrv: userData.hrv + ' ms',
+                    stress: userData.stress + '%',
+                    voiceStability: `Jitter ${userData.jitter}%, Shimmer ${userData.shimmer}%`
+                },
+                recommendations: PERSONALIZED_RECOMMENDATIONS[userData.sasangType]
+            };
+            
+            // 프롬프트 최적화 (토큰 절약)
+            const prompt = `당신은 한의학 사상체질 전문가입니다. 다음 정보를 바탕으로 질문에 답변해주세요:
+
+사용자 정보:
+- 사상체질: ${userContext.sasangType}
+- 건강 지표: 심박수 ${userContext.healthMetrics.heartRate}, HRV ${userContext.healthMetrics.hrv}, 스트레스 ${userContext.healthMetrics.stress}, 음성 안정성 ${userContext.healthMetrics.voiceStability}
+- 체질별 추천: ${JSON.stringify(userContext.recommendations)}
+
+사용자 질문: "${question}"
+
+요구사항:
+1. 한의학 사상체질 관점에서 답변
+2. 사용자의 현재 건강 상태를 고려한 맞춤 조언
+3. 구체적이고 실용적인 제안
+4. 친근하고 이해하기 쉬운 한국어
+5. 이모지 적절히 사용하여 가독성 향상
+
+답변:`;
+
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 800, // 토큰 사용량 제한
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 호출 실패: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('API 응답 형식 오류');
+            }
+            
+        } catch (error) {
+            console.error('Gemini API 오류:', error);
+            // API 실패 시 로컬 로직으로 폴백
+            return generateLocalResponse(question, userData);
+        }
+    }
+    
+    // 로컬 폴백 응답 함수 (API 실패 시)
+    function generateLocalResponse(question, userData) {
+        const sasangType = userData.sasangType;
+        const recommendations = PERSONALIZED_RECOMMENDATIONS[sasangType];
+        
+        // 질문 키워드 분석
+        const questionLower = question.toLowerCase();
+        
+        if (questionLower.includes('스트레스') || questionLower.includes('스트레스')) {
+            if (userData.stress < 30) {
+                return `현재 스트레스 지수는 ${userData.stress}%로 매우 낮은 편입니다! 🎉 이는 ${sasangType} 체질의 안정적인 특성을 잘 보여줍니다. 현재 상태를 유지하기 위해 ${recommendations.activities.join(', ')} 등을 꾸준히 하시면 좋겠습니다.`;
+            } else if (userData.stress > 70) {
+                return `현재 스트레스 지수는 ${userData.stress}%로 높은 편입니다. 😰 ${sasangType} 체질에 맞는 스트레스 해소법을 제안드립니다: ${recommendations.activities.join(', ')}. 특히 ${recommendations.foods.join(', ')} 등의 음식을 섭취하시면 도움이 될 것입니다.`;
+            } else {
+                return `현재 스트레스 지수는 ${userData.stress}%로 보통 수준입니다. ${sasangType} 체질의 균형잡힌 특성을 잘 유지하고 계시네요. ${recommendations.activities.join(', ')} 등을 통해 더욱 안정적인 상태를 만들어보세요.`;
+            }
+        }
+        
+        if (questionLower.includes('음식') || questionLower.includes('먹을') || questionLower.includes('식사')) {
+            return `${sasangType} 체질에 좋은 음식들을 추천드립니다: 🍽️\n\n✅ 추천 음식: ${recommendations.foods.join(', ')}\n❌ 피해야 할 음식: ${recommendations.avoid.filter(f => f.includes('음식')).join(', ')}\n\n특히 현재 스트레스 지수 ${userData.stress}%를 고려할 때, ${recommendations.foods[0]} 같은 음식이 도움이 될 것입니다.`;
+        }
+        
+        if (questionLower.includes('운동') || questionLower.includes('활동')) {
+            return `${sasangType} 체질에 맞는 운동을 추천드립니다: 🏃‍♂️\n\n✅ 추천 활동: ${recommendations.activities.join(', ')}\n❌ 피해야 할 활동: ${recommendations.avoid.filter(f => f.includes('운동') || f.includes('과로')).join(', ')}\n\n현재 심박수 ${userData.hr} BPM, HRV ${userData.hrv} ms를 고려할 때, ${recommendations.activities[0]} 같은 활동이 가장 적합합니다.`;
+        }
+        
+        if (questionLower.includes('체질') || questionLower.includes('사상')) {
+            return `${sasangType} 체질의 특징을 설명드리겠습니다: 🧘‍♀️\n\n${sasangType}은 ${SASANG_TYPES[sasangType]?.description || '안정적이고 균형잡힌 특성을 가진 체질입니다.'}\n\n현재 측정 결과와 비교해보면:\n• 심박수: ${userData.hr} BPM (${userData.hr > 75 ? '높음' : userData.hr < 65 ? '낮음' : '정상'})\n• HRV: ${userData.hrv} ms (${userData.hrv > 60 ? '매우 좋음' : userData.hrv < 40 ? '낮음' : '좋음'})\n• 스트레스: ${userData.stress}% (${userData.stress > 70 ? '높음' : userData.stress < 30 ? '낮음' : '보통'})\n\n이 모든 지표가 ${sasangType} 체질의 특성과 일치합니다!`;
+        }
+        
+        // 기본 응답
+        return `안녕하세요! ${sasangType} 체질이신 당신의 건강 데이터를 분석한 결과입니다:\n\n📊 현재 상태:\n• 심박수: ${userData.hr} BPM\n• HRV: ${userData.hrv} ms\n• 스트레스: ${userData.stress}%\n• 음성 안정성: Jitter ${userData.jitter}%, Shimmer ${userData.shimmer}%\n\n💡 맞춤 조언:\n${recommendations.activities.join(', ')} 등의 활동과 ${recommendations.foods.join(', ')} 등의 음식이 도움이 될 것입니다.\n\n더 구체적인 질문이 있으시면 언제든 물어보세요!`;
+    }
 
     const radius = faceProgressCircle.r.baseVal.value;
     const circumference = radius * 2 * Math.PI;
@@ -415,7 +796,11 @@
             score: 82,
             hr: 68,
             hrv: 55,
-            pitch: 130
+            stress: 25,
+            pitch: 130,
+            jitter: 0.8,
+            shimmer: 2.5,
+            hnr: 22
         };
 
         setTimeout(() => {
@@ -432,6 +817,420 @@
         // currentMeasurementResult를 Firestore에 저장하는 로직을 호출합니다.
         // 예: saveResultToFirestore(auth.currentUser.uid, currentMeasurementResult);
     });
+    
+                                     // AI 질문 이벤트 리스너
+          document.addEventListener('DOMContentLoaded', () => {
+              // 인증 상태 확인
+              checkAuthState();
+              
+              // 헤더 로그인 버튼 이벤트
+              const headerLoginBtn = document.getElementById('header-login-btn');
+              if (headerLoginBtn) {
+                  headerLoginBtn.addEventListener('click', () => {
+                      showScreen('auth');
+                  });
+              }
+              
+              // 소셜 로그인 버튼 이벤트
+              const googleLoginBtn = document.getElementById('google-login-btn');
+              const kakaoLoginBtn = document.getElementById('kakao-login-btn');
+              
+              if (googleLoginBtn) {
+                  googleLoginBtn.addEventListener('click', () => {
+                      handleGoogleLogin();
+                  });
+              }
+              
+              if (kakaoLoginBtn) {
+                  kakaoLoginBtn.addEventListener('click', () => {
+                      handleKakaoLogin();
+                  });
+              }
+              
+              const sendQuestionBtn = document.getElementById('send-question-btn');
+              const userQuestion = document.getElementById('user-question');
+              const aiAnswer = document.getElementById('ai-answer');
+         
+         if (sendQuestionBtn && userQuestion && aiAnswer) {
+             sendQuestionBtn.addEventListener('click', () => {
+                 handleAIQuestion();
+             });
+             
+             // Enter 키로도 전송 가능
+             userQuestion.addEventListener('keypress', (e) => {
+                 if (e.key === 'Enter' && !e.shiftKey) {
+                     e.preventDefault();
+                     handleAIQuestion();
+                 }
+             });
+         }
+     });
+    
+    // AI 질문 처리 함수
+    async function handleAIQuestion() {
+        const userQuestion = document.getElementById('user-question');
+        const aiAnswer = document.getElementById('ai-answer');
+        const sendQuestionBtn = document.getElementById('send-question-btn');
+        
+        if (!userQuestion || !aiAnswer || !sendQuestionBtn) return;
+        
+        const question = userQuestion.value.trim();
+        if (!question) {
+            aiAnswer.innerHTML = '<p class="text-red-400">질문을 입력해주세요.</p>';
+            return;
+        }
+        
+        // 무료 질문 횟수 체크
+        if (questionCount >= MAX_FREE_QUESTIONS) {
+            aiAnswer.innerHTML = `
+                <div class="text-center">
+                    <p class="text-yellow-400 font-semibold mb-2">무료 질문 횟수를 모두 사용하셨습니다!</p>
+                    <p class="text-gray-300 mb-4">더 많은 맞춤 건강 상담을 원하시면 프리미엄 리포트를 구매해주세요.</p>
+                    <button class="bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300">
+                        프리미엄 리포트 구매하기
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        // 질문 처리 중 표시
+        sendQuestionBtn.disabled = true;
+        sendQuestionBtn.textContent = '처리 중...';
+        aiAnswer.innerHTML = '<div class="flex items-center justify-center"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400"></div><span class="ml-2">AI가 답변을 생성하고 있습니다...</span></div>';
+        
+        // Gemini API 호출하여 실제 AI 응답 생성
+        try {
+            const userData = {
+                sasangType: currentMeasurementResult?.sasangType || '태음인 (太陰人)',
+                hr: currentMeasurementResult?.hr || 68,
+                hrv: currentMeasurementResult?.hrv || 55,
+                stress: currentMeasurementResult?.stress || 25,
+                jitter: currentMeasurementResult?.jitter || 0.8,
+                shimmer: currentMeasurementResult?.shimmer || 2.5
+            };
+            
+            const response = await callGeminiAPI(question, userData);
+            
+            // 응답 표시
+            aiAnswer.innerHTML = `<p class="whitespace-pre-line">${response}</p>`;
+            
+            // 질문 횟수 증가
+            questionCount++;
+            
+            // 남은 무료 질문 횟수 표시
+            const remainingQuestions = MAX_FREE_QUESTIONS - questionCount;
+            const questionCounter = document.querySelector('.bg-yellow-500\\/20');
+            if (questionCounter) {
+                questionCounter.textContent = `${remainingQuestions}회 남음`;
+            }
+            
+            // 입력 필드 초기화 및 버튼 복원
+            userQuestion.value = '';
+            sendQuestionBtn.disabled = false;
+            sendQuestionBtn.textContent = '전송';
+            
+        } catch (error) {
+            console.error('AI 응답 생성 오류:', error);
+            aiAnswer.innerHTML = '<p class="text-red-400">AI 응답 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</p>';
+            sendQuestionBtn.disabled = false;
+            sendQuestionBtn.textContent = '전송';
+        }
+    }
+
+    // 레이더 차트 초기화
+    function initRadarChart() {
+        const canvas = document.getElementById('coreMetricsChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['신체 활력', '마음 안정', '음성 건강', '기질 균형'],
+                    datasets: [{
+                        label: '나의 건강 상태',
+                        data: [85, 90, 75, 78],
+                        fill: true,
+                        backgroundColor: 'rgba(14, 165, 233, 0.2)',
+                        borderColor: 'rgb(14, 165, 233)',
+                        pointBackgroundColor: 'rgb(14, 165, 233)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(14, 165, 233)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                            pointLabels: { color: '#fff', font: { size: 14 } },
+                            ticks: {
+                                color: '#0a0a0a',
+                                backdropColor: 'rgba(255, 255, 255, 0.8)',
+                                stepSize: 25
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // 결과 화면이 표시될 때 차트 초기화
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
+        
+        // 결과 화면일 때 차트 초기화 및 사상체질 분석
+        if (screenName === 'result') {
+            setTimeout(() => {
+                initRadarChart();
+                updateSasangAnalysis();
+            }, 100);
+        }
+    }
+    
+                   // 소셜 로그인 핸들러 함수들
+      async function handleGoogleLogin() {
+          try {
+              console.log('Google 로그인 시도...');
+              
+              // Google 로그인 제공자 생성
+              const provider = new firebase.auth.GoogleAuthProvider();
+              provider.addScope('email');
+              provider.addScope('profile');
+              
+              // Firebase Auth로 Google 로그인
+              const result = await firebase.auth().signInWithPopup(provider);
+              
+              if (result.user) {
+                  console.log('Google 로그인 성공:', result.user.displayName);
+                  
+                  // 사용자 정보 저장
+                  const userData = {
+                      uid: result.user.uid,
+                      email: result.user.email,
+                      displayName: result.user.displayName,
+                      photoURL: result.user.photoURL,
+                      provider: 'google'
+                  };
+                  
+                  // 로컬 스토리지에 사용자 정보 저장
+                  localStorage.setItem('enoUser', JSON.stringify(userData));
+                  
+                  // 헤더 업데이트
+                  updateHeaderForUser(userData);
+                  
+                  // 결과 화면으로 이동
+                  showScreen('result');
+                  
+                  // 성공 메시지
+                  showNotification('Google 계정으로 로그인되었습니다!', 'success');
+              }
+          } catch (error) {
+              console.error('Google 로그인 오류:', error);
+              
+              if (error.code === 'auth/popup-closed-by-user') {
+                  showNotification('로그인 창이 닫혔습니다. 다시 시도해주세요.', 'error');
+              } else if (error.code === 'auth/popup-blocked') {
+                  showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+              } else {
+                  showNotification('Google 로그인 중 오류가 발생했습니다.', 'error');
+              }
+          }
+      }
+      
+      async function handleKakaoLogin() {
+          try {
+              console.log('카카오톡 로그인 시도...');
+              
+              // Kakao 로그인 실행
+              const response = await new Promise((resolve, reject) => {
+                  Kakao.Auth.login({
+                      success: resolve,
+                      fail: reject
+                  });
+              });
+              
+              if (response) {
+                  // 사용자 정보 가져오기
+                  const userInfo = await new Promise((resolve, reject) => {
+                      Kakao.API.request({
+                          url: '/v2/user/me',
+                          success: resolve,
+                          fail: reject
+                      });
+                  });
+                  
+                  console.log('카카오톡 로그인 성공:', userInfo);
+                  
+                  // Firebase Custom Token 생성 (백엔드 연동 필요)
+                  // 실제 구현에서는 백엔드에서 Kakao 토큰을 검증하고 Firebase Custom Token을 생성해야 함
+                  
+                  // 임시로 로컬 사용자 정보 생성
+                  const userData = {
+                      uid: 'kakao_' + userInfo.id,
+                      email: userInfo.kakao_account?.email || null,
+                      displayName: userInfo.properties?.nickname || '카카오 사용자',
+                      photoURL: userInfo.properties?.profile_image || null,
+                      provider: 'kakao'
+                  };
+                  
+                  // 로컬 스토리지에 사용자 정보 저장
+                  localStorage.setItem('enoUser', JSON.stringify(userData));
+                  
+                  // 헤더 업데이트
+                  updateHeaderForUser(userData);
+                  
+                  // 결과 화면으로 이동
+                  showScreen('result');
+                  
+                  // 성공 메시지
+                  showNotification('카카오톡으로 로그인되었습니다!', 'success');
+              }
+          } catch (error) {
+              console.error('카카오톡 로그인 오류:', error);
+              
+              if (error.error === 'access_denied') {
+                  showNotification('로그인이 취소되었습니다.', 'error');
+              } else {
+                  showNotification('카카오톡 로그인 중 오류가 발생했습니다.', 'error');
+              }
+          }
+      }
+      
+      // 사용자 로그인 상태 확인
+      function checkAuthState() {
+          const userData = localStorage.getItem('enoUser');
+          if (userData) {
+              const user = JSON.parse(userData);
+              updateHeaderForUser(user);
+          }
+      }
+      
+      // 헤더 사용자 정보 업데이트
+      function updateHeaderForUser(userData) {
+          const headerText = document.querySelector('.text-sm.text-gray-300');
+          const loginBtn = document.getElementById('header-login-btn');
+          
+          if (headerText && loginBtn) {
+              headerText.textContent = `안녕하세요, ${userData.displayName}님`;
+              loginBtn.textContent = '로그아웃';
+              loginBtn.onclick = handleLogout;
+          }
+      }
+      
+      // 로그아웃 처리
+      function handleLogout() {
+          // Firebase 로그아웃
+          firebase.auth().signOut();
+          
+          // Kakao 로그아웃
+          if (Kakao.Auth.getAccessToken()) {
+              Kakao.Auth.logout();
+          }
+          
+          // 로컬 스토리지 클리어
+          localStorage.removeItem('enoUser');
+          
+          // 헤더 초기화
+          const headerText = document.querySelector('.text-sm.text-gray-300');
+          const loginBtn = document.getElementById('header-login-btn');
+          
+          if (headerText && loginBtn) {
+              headerText.textContent = '안녕하세요, 게스트님';
+              loginBtn.textContent = '로그인';
+              loginBtn.onclick = () => showScreen('auth');
+          }
+          
+          // 시작 화면으로 이동
+          showScreen('welcome');
+          
+          showNotification('로그아웃되었습니다.', 'info');
+      }
+      
+      // 알림 표시 함수
+      function showNotification(message, type = 'info') {
+          const notification = document.createElement('div');
+          notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-semibold transition-all duration-300 transform translate-x-full`;
+          
+          switch (type) {
+              case 'success':
+                  notification.className += ' bg-green-500';
+                  break;
+              case 'error':
+                  notification.className += ' bg-red-500';
+                  break;
+              case 'info':
+                  notification.className += ' bg-blue-500';
+                  break;
+              default:
+                  notification.className += ' bg-gray-500';
+          }
+          
+          notification.textContent = message;
+          document.body.appendChild(notification);
+          
+          // 애니메이션
+          setTimeout(() => {
+              notification.classList.remove('translate-x-full');
+          }, 100);
+          
+          // 자동 제거
+          setTimeout(() => {
+              notification.classList.add('translate-x-full');
+              setTimeout(() => {
+                  document.body.removeChild(notification);
+              }, 300);
+          }, 3000);
+      }
+     
+     // 사상체질 분석 결과를 UI에 표시
+     function updateSasangAnalysis() {
+         if (!currentMeasurementResult) return;
+         
+         // 사상체질 분류
+         const sasangResult = classifySasangType(currentMeasurementResult);
+         
+         // 측정 결과에 체질 정보 추가
+         if (currentMeasurementResult) {
+             currentMeasurementResult.sasangType = sasangResult.type;
+         }
+         
+         // UI 업데이트
+         const typeDisplay = document.getElementById('sasang-type-display');
+         const description = document.getElementById('sasang-description');
+         const confidence = document.getElementById('sasang-confidence');
+         
+         if (typeDisplay && description && confidence) {
+             typeDisplay.textContent = sasangResult.type;
+             description.textContent = `당신의 생체 신호는 ${sasangResult.type}의 특성과 높은 유사도를 보입니다. AI가 분석한 결과입니다.`;
+             confidence.textContent = `신뢰도: ${sasangResult.confidence}%`;
+             
+             // 건강 조언 표시
+             const healthAdvice = generateHealthAdvice(sasangResult.type);
+             const exerciseAdvice = document.getElementById('exercise-advice');
+             const dietAdvice = document.getElementById('diet-advice');
+             const lifestyleAdvice = document.getElementById('lifestyle-advice');
+             const adviceSection = document.getElementById('health-advice-section');
+             
+             if (exerciseAdvice && dietAdvice && lifestyleAdvice && adviceSection) {
+                 exerciseAdvice.textContent = healthAdvice.exercise;
+                 dietAdvice.textContent = healthAdvice.diet;
+                 lifestyleAdvice.textContent = healthAdvice.lifestyle;
+                 adviceSection.classList.remove('hidden');
+             }
+         }
+     }
 
 </script>
 </body>

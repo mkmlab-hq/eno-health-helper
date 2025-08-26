@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, Activity, Mic, Save, TrendingUp, TrendingDown, CheckCircle, UserPlus } from 'lucide-react';
+import { Heart, Activity, Save, TrendingUp, CheckCircle } from 'lucide-react';
 import { signInWithGoogle, signInWithKakao } from '@/lib/firebase';
 
 interface HealthMetrics {
@@ -39,8 +39,8 @@ export default function ResultPage() {
       hrv: Math.floor(Math.random() * 50) + 30, // 30-80 ms
       jitter: Math.random() * 2 + 0.1, // 0.1-2.1%
       shimmer: Math.random() * 3 + 0.5, // 0.5-3.5%
-      stressLevel: ['낮음', '보통', '높음'][Math.floor(Math.random() * 3)],
-      overallHealth: ['양호', '보통', '주의'][Math.floor(Math.random() * 3)]
+      stressLevel: ['낮음', '보통', '높음'][Math.floor(Math.random() * 3)] || '보통',
+      overallHealth: ['양호', '보통', '주의'][Math.floor(Math.random() * 3)] || '보통'
     };
     setMetrics(simulatedMetrics);
   }, []);
@@ -74,7 +74,7 @@ export default function ResultPage() {
       console.log('Kakao sign-in successful:', result);
       
       // 결과 저장 및 대시보드로 이동
-      await handleSocialSignupSuccess(result.user);
+      await handleSocialSignupSuccess(result);
     } catch (error) {
       console.error('Kakao sign-in failed:', error);
       alert('카카오 로그인에 실패했습니다.');
@@ -84,19 +84,16 @@ export default function ResultPage() {
   };
 
   // 소셜 로그인 성공 후 처리
-  const handleSocialSignupSuccess = async (user: any) => {
+  const handleSocialSignupSuccess = async (_userResult: any) => {
     try {
       // 결과 저장 로직 (실제 구현 시)
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 시뮬레이션
-      setSaved(true);
-      setShowSignupModal(false);
+      console.log('결과 저장 완료');
       
-      // 회원가입 완료 후 Before/After 비교 페이지로 이동
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
+      // 대시보드로 이동
+      router.push('/dashboard');
     } catch (error) {
-      console.error('Result save failed:', error);
+      console.error('결과 저장 실패:', error);
+      alert('결과 저장에 실패했습니다.');
     }
   };
 

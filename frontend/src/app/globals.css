@@ -1,88 +1,191 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Fira+Code:wght@300;400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 커스텀 폰트 설정 */
 @layer base {
-  body {
-    @apply bg-gray-900 text-white font-noto;
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', monospace;
+  }
+  
+  code, pre {
+    font-family: 'Fira Code', monospace;
   }
 }
 
+/* 커스텀 색상 변수 */
+@layer base {
+  :root {
+    --eno-50: #f0f9ff;
+    --eno-100: #e0f2fe;
+    --eno-200: #bae6fd;
+    --eno-300: #7dd3fc;
+    --eno-400: #38bdf8;
+    --eno-500: #0ea5e9;
+    --eno-600: #0284c7;
+    --eno-700: #0369a1;
+    --eno-800: #075985;
+    --eno-900: #0c4a6e;
+  }
+}
+
+/* 기존 커스텀 클래스들 */
 @layer components {
   .glass-card {
-    @apply bg-glass backdrop-blur-md border border-glass-dark rounded-xl shadow-2xl;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   }
-  
+
   .neon-text {
-    @apply text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.5)];
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
   }
-  
+
+  .neon-cyan {
+    color: #00d4ff;
+  }
+
+  .neon-sky {
+    color: #0ea5e9;
+  }
+
+  .neon-border {
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+  }
+
+  .btn-primary {
+    @apply bg-eno-600 hover:bg-eno-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 border border-gray-600;
+  }
+
   .neon-glow {
     text-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.6);
   }
-  
-  .neon-border {
-    @apply border-neon-cyan shadow-[0_0_20px_rgba(0,255,255,0.3)];
-  }
-  
+
   .face-guideline {
+    border: 2px dashed rgba(0, 212, 255, 0.5);
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .face-guideline::before {
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 70%;
-    height: 80%;
-    border: 3px dashed rgba(0, 212, 255, 0.5);
-    border-radius: 50%;
     transform: translate(-50%, -50%);
-    transition: border-color 0.5s ease;
-  }
-  
-  .face-guideline.active {
-    border-color: #00ff9d;
-  }
-  
-  .btn-primary {
-    @apply bg-gradient-to-r from-neon-cyan to-neon-sky text-gray-900 font-bold py-3 px-6 rounded-lg 
-           hover:from-neon-sky hover:to-neon-cyan transition-all duration-300 transform hover:scale-105 
-           shadow-lg hover:shadow-neon-cyan/50;
-  }
-  
-  .btn-secondary {
-    @apply bg-glass border border-neon-cyan text-neon-cyan font-medium py-2 px-4 rounded-lg
-           hover:bg-neon-cyan hover:text-gray-900 transition-all duration-300;
-  }
-  
-  .btn-tertiary {
-    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg 
-           hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 
-           shadow-lg hover:shadow-purple-500/50;
+    width: 80%;
+    height: 80%;
+    border: 1px dashed rgba(0, 212, 255, 0.3);
+    border-radius: 50%;
   }
 }
 
-@layer utilities {
-  .text-shadow {
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+/* 새로운 디자인 시스템 */
+@layer components {
+  .card {
+    @apply bg-white rounded-lg p-6 shadow-sm;
   }
-  
-  /* Landing Page Styles */
-  .font-orbitron {
-    font-family: 'Orbitron', sans-serif;
+
+  .bg-eno-100 {
+    background-color: rgb(224 242 254);
   }
-  
-  .glassmorphism {
-    background: rgba(15, 23, 42, 0.5);
+
+  .text-eno-600 {
+    color: rgb(2 132 199);
+  }
+
+  .text-eno-700 {
+    color: rgb(3 105 161);
+  }
+
+  .from-eno-50 {
+    --tw-gradient-from: #f0f9ff var(--tw-gradient-from-position);
+    --tw-gradient-to: rgba(240, 249, 255, 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+
+  .to-eno-100 {
+    --tw-gradient-to: #e0f2fe var(--tw-gradient-to-position);
+  }
+}
+
+/* 다크 테마 지원 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #1a1a2e;
+    --text-primary: #ffffff;
+    --text-secondary: #9ca3af;
+    --accent-primary: #00d4ff;
+    --accent-secondary: #0ea5e9;
+  }
+}
+
+/* 라이트 테마 */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --accent-primary: #0284c7;
+    --accent-secondary: #0ea5e9;
+  }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .glass-card {
     backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(56, 189, 248, 0.1);
   }
   
-  .hero-bg {
-    background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
+  .btn-primary {
+    @apply py-2 px-4 text-sm;
   }
-  
-  .feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+}
+
+/* 애니메이션 */
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
   }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+  }
+}
+
+.neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.6);
 }
