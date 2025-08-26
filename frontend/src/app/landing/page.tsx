@@ -1,3 +1,4 @@
+"use client";
 
 import React from 'react';
 import Link from 'next/link';
@@ -98,31 +99,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* 스타일 */}
-      <style jsx global>{`
-        body {
-          font-family: 'Noto Sans KR', sans-serif;
-          background-color: #020617;
-          color: #e2e8f0;
-        }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .glassmorphism {
-          background: rgba(15, 23, 42, 0.5);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(56, 189, 248, 0.1);
-        }
-        .hero-bg {
-          background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
-        }
-        .feature-card:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
-        }
-      `}</style>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+      {/* 글로벌 폰트/스타일은 Tailwind와 next/font로 처리됨 */}
     </div>
   );
 }

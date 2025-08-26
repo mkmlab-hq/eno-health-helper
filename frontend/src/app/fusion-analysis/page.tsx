@@ -1,60 +1,3 @@
-
-  // 오디오 자동 녹음용
-
-  // 1. 페이지 진입 시 30초간 얼굴(rPPG) 자동 녹화
-  useEffect(() => {
-    let videoTimeout: NodeJS.Timeout;
-    const doVideo = async () => {
-      await startVideoRecording();
-      // 30초 후 자동 정지
-      videoTimeout = setTimeout(() => {
-        stopRecording();
-      }, 30000);
-    };
-    doVideo();
-    return () => clearTimeout(videoTimeout);
-    // eslint-disable-next-line
-  }, []);
-
-  // 2. 얼굴 녹화가 끝나면 5초간 음성(아~) 자동 녹음
-  useEffect(() => {
-    if (videoBlob && !audioBlob && !isAudioRecording) {
-      const doAudio = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-          audioRecorderRef.current = mediaRecorder;
-          const chunks: Blob[] = [];
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) chunks.push(event.data);
-          };
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            setAudioBlob(blob);
-            stream.getTracks().forEach(track => track.stop());
-            setIsAudioRecording(false);
-          };
-          mediaRecorder.start();
-          setIsAudioRecording(true);
-          setTimeout(() => {
-            mediaRecorder.stop();
-          }, 5000);
-        } catch (err) {
-          setError('마이크 접근 권한이 필요합니다.');
-        }
-      };
-      doAudio();
-    }
-    // eslint-disable-next-line
-  }, [videoBlob]);
-
-  // 3. 비디오와 오디오가 모두 준비되면 자동 분석 실행
-  useEffect(() => {
-    if (videoBlob && audioBlob && !isAnalyzing && !result) {
-      runFusionAnalysis();
-    }
-    // eslint-disable-next-line
-  }, [videoBlob, audioBlob]);
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -97,11 +40,7 @@ export default function FusionAnalysisPage() {
   const [recordingProgress, setRecordingProgress] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-
-  // 오디오 자동 녹음용
-  const audioRecorderRef = useRef<MediaRecorder | null>(null);
-  const [isAudioRecording, setIsAudioRecording] = useState(false);
+  // 오디오 자동 녹음용 (상단 선언 사용)
 
 
   // 측정 시작하기 버튼 클릭 시 전체 측정 플로우 시작

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/context/AuthContext'; // 인증 체크 제거
 import { Camera, Mic, Activity, LogOut, Play, Pause, RotateCcw } from 'lucide-react';
@@ -195,9 +195,9 @@ export default function MeasurePage() {
     setIsRecording(false);
   };
 
-  const goToResults = () => {
+  const goToResults = useCallback(() => {
     router.push('/result');
-  };
+  }, [router]);
 
   // 인증 체크 제거
   // if (!currentUser) {

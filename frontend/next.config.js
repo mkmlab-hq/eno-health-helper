@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  reactStrictMode: true,
+  swcMinify: true,
   experimental: {
-    optimizeCss: true
+    optimizeCss: true,
+    optimizePackageImports: [
+      'lucide-react'
+    ]
   },
   trailingSlash: true,
   images: {
@@ -10,7 +15,8 @@ const nextConfig = {
   },
   // SEO 최적화
   generateEtags: false,
-  compress: true
+  compress: true,
+  poweredByHeader: false,
 }
 
 module.exports = nextConfig
