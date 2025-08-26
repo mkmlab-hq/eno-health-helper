@@ -4,8 +4,12 @@
 FastAPI 기반 건강 측정 분석 시스템 - 진짜 기능 연결
 """
 
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from pydantic import BaseModel
 import numpy as np
 import logging
@@ -87,15 +91,93 @@ try:
 except Exception as e:
     logger.warning(f"FastAPI Cache 초기화 실패: {e}")
 
-# CORS 설정
+# 보안 및 성능 미들웨어 설정
+# CORS: 환경변수 ALLOWED_ORIGINS(콤마구분)로 설정, 기본은 로컬 개발 도메인만 허용
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+allow_credentials_env = os.getenv("ALLOW_CREDENTIALS", "false").lower() == "true"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials_env,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-logger.info("CORS 미들웨어 추가 완료")
+
+# 압축
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# HTTPS 강제 (프로덕션/옵션)
+force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true" or os.getenv("ENV", "").lower() == "production"
+if force_https:
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# 신뢰 호스트 제한 (옵션)
+trusted_hosts_env = os.getenv("ALLOWED_HOSTS", "").strip()
+if trusted_hosts_env:
+    trusted_hosts = [h.strip() for h in trusted_hosts_env.split(",") if h.strip()]
+    if trusted_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
+
+logger.info("보안/성능 미들웨어 추가 완료")
+
+# CSRF 보호 (옵션: ENFORCE_CSRF=true 일 때 유효)
+CSRF_COOKIE_NAME = "csrf_token"
+ENFORCE_CSRF = os.getenv("ENFORCE_CSRF", "false").lower() == "true"
+
+@app.middleware("http")
+async def csrf_protect(request: Request, call_next):
+    if ENFORCE_CSRF and request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
+        header_token = request.headers.get("X-CSRF-Token")
+        if not cookie_token or not header_token or header_token != cookie_token:
+            return JSONResponse({"detail": "CSRF validation failed"}, status_code=403)
+    response = await call_next(request)
+    return response
+
+@app.get("/api/v1/csrf-token")
+async def get_csrf_token():
+    import secrets
+    token = secrets.token_urlsafe(32)
+    response = JSONResponse({"csrfToken": token})
+    # double-submit token 패턴: JS에서 읽을 수 있도록 HttpOnly 미설정
+    response.set_cookie(
+        CSRF_COOKIE_NAME,
+        token,
+        secure=force_https,
+        samesite="strict",
+        httponly=False,
+        path="/",
+    )
+    return response
+
+# 보안 헤더 추가
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # 공통 보안 헤더
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+    response.headers.setdefault("Cache-Control", "no-store")
+
+    # API 응답에 대한 최소 CSP (문서가 아니므로 매우 제한적으로 설정)
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    )
+
+    # HSTS (HTTPS 환경에서만)
+    is_https = force_https or request.headers.get("x-forwarded-proto", "").lower() == "https"
+    if is_https:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+
+    # 브라우저 권한 정책: API에서는 모든 센서 권한 비활성화
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
 
 # --- 실제 분석기 인스턴스 생성 ---
 if REAL_ANALYZERS_AVAILABLE:

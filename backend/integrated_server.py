@@ -20,9 +20,12 @@ from datetime import datetime
 
 # FastAPI 및 관련 라이브러리
 try:
-    from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+    from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse
+    from starlette.middleware.gzip import GZipMiddleware
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
     from pydantic import BaseModel
     import uvicorn
 except ImportError as e:
@@ -56,14 +59,49 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS 설정
+# CORS/보안/성능 미들웨어
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+allow_credentials_env = os.getenv("ALLOW_CREDENTIALS", "false").lower() == "true"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 특정 도메인으로 제한
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials_env,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true" or os.getenv("ENV", "").lower() == "production"
+if force_https:
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+trusted_hosts_env = os.getenv("ALLOWED_HOSTS", "").strip()
+if trusted_hosts_env:
+    trusted_hosts = [h.strip() for h in trusted_hosts_env.split(",") if h.strip()]
+    if trusted_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+    response.headers.setdefault("Cache-Control", "no-store")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    )
+    is_https = force_https or request.headers.get("x-forwarded-proto", "").lower() == "https"
+    if is_https:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
 
 # Pydantic 모델들
 class HealthData(BaseModel):

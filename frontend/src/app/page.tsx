@@ -35,7 +35,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,191,255,0.1),transparent_50%)]"></div>
       
       {/* 네비게이션 */}
-      <nav className="fixed top-0 w-full bg-black/20 backdrop-blur-md border-b border-blue-500/30 z-50">
+      <nav className="fixed top-0 w-full bg-black/20 backdrop-blur-md border-b border-blue-500/30 z-50" role="navigation" aria-label="주요 메뉴">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -52,16 +52,16 @@ export default function Home() {
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#technology" className="text-gray-300 hover:text-blue-400 transition-colors font-medium">
+              <a href="#technology" className="text-gray-300 hover:text-blue-400 transition-colors font-medium" role="menuitem">
                 7대 기술
               </a>
-              <a href="#services" className="text-gray-300 hover:text-blue-400 transition-colors font-medium">
+              <a href="#services" className="text-gray-300 hover:text-blue-400 transition-colors font-medium" role="menuitem">
                 서비스
               </a>
-              <a href="#vision" className="text-gray-300 hover:text-blue-400 transition-colors font-medium">
+              <a href="#vision" className="text-gray-300 hover:text-blue-400 transition-colors font-medium" role="menuitem">
                 비전
               </a>
-              <a href="/landing" className="text-gray-300 hover:text-blue-400 transition-colors font-medium">
+              <a href="/landing" className="text-gray-300 hover:text-blue-400 transition-colors font-medium" role="menuitem">
                 회사 소개
               </a>
             </div>
@@ -70,7 +70,7 @@ export default function Home() {
                 isConnected 
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                   : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}>
+              }`} aria-live="polite" aria-atomic="true">
                 {isConnected ? '🟢 API 연결됨' : '🔴 API 연결 안됨'}
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function Home() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8 pt-24">
+      <main id="main-content" role="main" tabIndex={-1} className="max-w-4xl mx-auto px-4 py-8 pt-24">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">
@@ -107,8 +107,8 @@ export default function Home() {
           </div>
           
           {!productId ? (
-            <button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
-              <QrCode className="w-5 h-5 mr-2 inline" />
+            <button type="button" aria-label="QR 스캔 시작" className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+              <QrCode className="w-5 h-5 mr-2 inline" aria-hidden="true" focusable="false" />
               QR 스캔 시작
             </button>
           ) : (

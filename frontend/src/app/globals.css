@@ -44,6 +44,38 @@
   .text-shadow {
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   }
+  /* 키보드 포커스 표시 강화 */
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 3px solid #38bdf8; /* cyan-400 */
+    outline-offset: 2px;
+  }
+  /* 스킵 링크 */
+  .skip-link {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    background: #0ea5e9;
+    color: #0b1220;
+    padding: 8px 12px;
+    border-radius: 6px;
+    z-index: 50;
+  }
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    left: 8px;
+  }
+  /* 모션 감소 선호 시 애니메이션 최소화 */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
   
   /* Landing Page Styles */
   .font-orbitron {
