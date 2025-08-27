@@ -2,6 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { RPPGAnalyzer, RPPGResult } from '@/lib/rppgAnalyzer';
+import { VoiceAnalyzer, VoiceAnalysisResult } from '@/lib/voiceAnalyzer';
+import { saveHealthData } from '@/lib/firebase';
 
 export default function MeasurePage() {
   const router = useRouter();
@@ -14,8 +17,21 @@ export default function MeasurePage() {
   // 카메라 관련
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const rppgAnalyzerRef = useRef<RPPGAnalyzer | null>(null);
+  
+  // 음성 관련
+  const voiceAnalyzerRef = useRef<VoiceAnalyzer | null>(null);
+  
+  // 측정 결과
+  const [rppgResult, setRppgResult] = useState<RPPGResult | null>(null);
+  const [voiceResult, setVoiceResult] = useState<VoiceAnalysisResult | null>(null);
+  
+  // 진행률
+  const [faceProgress, setFaceProgress] = useState(0);
+  const [voiceProgress, setVoiceProgress] = useState(0);
 
-  const FACE_SCAN_DURATION = 30;  // 30초 얼굴 스캔
+  const FACE_SCAN_DURATION = 30000;  // 30초 얼굴 스캔
+  const VOICE_RECORD_DURATION = 5000; // 5초 음성 녹음
 
   // 카메라 초기화
   const initializeCamera = useCallback(async () => {
@@ -31,6 +47,13 @@ export default function MeasurePage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // rPPG 분석기 초기화
+        rppgAnalyzerRef.current = new RPPGAnalyzer(videoRef.current);
+        rppgAnalyzerRef.current.onResult((result) => {
+          setRppgResult(result);
+          console.log('rPPG 분석 완료:', result);
+        });
       }
     } catch (err) {
       setError('카메라 접근 권한이 필요합니다.');
@@ -38,9 +61,19 @@ export default function MeasurePage() {
     }
   }, []);
 
+  // 음성 분석기 초기화
+  const initializeVoiceAnalyzer = useCallback(() => {
+    voiceAnalyzerRef.current = new VoiceAnalyzer();
+  }, []);
+
   // 측정 시작
   const startMeasurement = useCallback(async () => {
     try {
+      if (!privacyConsent) {
+        setShowPrivacyModal(true);
+        return;
+      }
+
       setCurrentStep('face');
       setError(null);
       setIsProcessing(true);
@@ -48,37 +81,121 @@ export default function MeasurePage() {
       // 카메라 초기화
       await initializeCamera();
       
+      // rPPG 분석 시작
+      if (rppgAnalyzerRef.current) {
+        rppgAnalyzerRef.current.startAnalysis();
+      }
+      
+      // 진행률 업데이트
+      const progressInterval = setInterval(() => {
+        setFaceProgress(prev => {
+          const newProgress = prev + (100 / (FACE_SCAN_DURATION / 100));
+          if (newProgress >= 100) {
+            clearInterval(progressInterval);
+            return 100;
+          }
+          return newProgress;
+        });
+      }, 100);
+      
       // 30초 후 자동으로 voice 단계로
       setTimeout(() => {
         setCurrentStep('voice');
+        setFaceProgress(100);
+        
+        // 음성 분석기 초기화
+        initializeVoiceAnalyzer();
+        
+        // 음성 녹음 시작
+        if (voiceAnalyzerRef.current) {
+          voiceAnalyzerRef.current.startRecording();
+        }
+        
+        // 음성 진행률 업데이트
+        const voiceProgressInterval = setInterval(() => {
+          setVoiceProgress(prev => {
+            const newProgress = prev + (100 / (VOICE_RECORD_DURATION / 100));
+            if (newProgress >= 100) {
+              clearInterval(voiceProgressInterval);
+              return 100;
+            }
+            return newProgress;
+          });
+        }, 100);
+        
         // 5초 후 완료
         setTimeout(() => {
           setCurrentStep('complete');
+          setVoiceProgress(100);
           setIsProcessing(false);
-        }, 5000);
-      }, 30000);
+          
+          // 음성 분석 결과 가져오기
+          if (voiceAnalyzerRef.current) {
+            const result = voiceAnalyzerRef.current.stopRecording();
+            if (result) {
+              setVoiceResult(result);
+              console.log('음성 분석 완료:', result);
+            }
+          }
+        }, VOICE_RECORD_DURATION);
+        
+      }, FACE_SCAN_DURATION);
       
     } catch (err) {
       setError('측정 시작 실패: ' + (err as Error).message);
       setIsProcessing(false);
     }
-  }, [initializeCamera]);
+  }, [initializeCamera, initializeVoiceAnalyzer, privacyConsent]);
+
+  // 측정 결과 저장
+  const saveResults = useCallback(async () => {
+    if (!rppgResult || !voiceResult) return;
+    
+    try {
+      const userId = 'demo-user'; // 실제로는 인증된 사용자 ID
+      const healthData = {
+        rppg: rppgResult,
+        voice: voiceResult,
+        measurementType: 'combined',
+        device: navigator.userAgent
+      };
+      
+      const result = await saveHealthData(userId, healthData);
+      if (result.success) {
+        console.log('건강 데이터 저장 성공');
+        router.push('/result');
+      } else {
+        console.error('건강 데이터 저장 실패:', result.error);
+      }
+    } catch (error) {
+      console.error('결과 저장 중 오류:', error);
+    }
+  }, [rppgResult, voiceResult, router]);
 
   const resetMeasurement = useCallback(() => {
     setCurrentStep('ready');
     setError(null);
     setIsProcessing(false);
+    setFaceProgress(0);
+    setVoiceProgress(0);
+    setRppgResult(null);
+    setVoiceResult(null);
     
     // 스트림 정리
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    
+    // 분석기 정리
+    if (rppgAnalyzerRef.current) {
+      rppgAnalyzerRef.current.stopAnalysis();
+    }
+    
+    if (voiceAnalyzerRef.current) {
+      voiceAnalyzerRef.current.dispose();
+    }
   }, []);
-
-  const goToResults = useCallback(() => {
-    router.push('/result');
-  }, [router]);
 
   // 컴포넌트 언마운트 시 정리
   useEffect(() => {
@@ -86,10 +203,14 @@ export default function MeasurePage() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (rppgAnalyzerRef.current) {
+        rppgAnalyzerRef.current.stopAnalysis();
+      }
+      if (voiceAnalyzerRef.current) {
+        voiceAnalyzerRef.current.dispose();
+      }
     };
   }, []);
-
-  const progress = 0; // 임시로 0으로 설정
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
@@ -97,178 +218,175 @@ export default function MeasurePage() {
         <div className="glass-card rounded-2xl p-6 text-center">
           
           {/* Header */}
-          <div className="mb-4">
-            <h1 className="text-2xl font-orbitron font-bold text-neon-cyan mb-2">엔오건강도우미</h1>
-            <p className="text-gray-300 text-sm">안녕하세요, 게스트님</p>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white mb-2">건강 측정</h1>
+            <p className="text-gray-300">카메라와 마이크를 통해 건강 상태를 측정합니다</p>
           </div>
 
-          {/* Status Display */}
-          <div className="mb-4">
-            <h2 id="status-title" className="text-2xl font-bold text-neon-cyan neon-glow">
-              {currentStep === 'ready' && '건강 측정 준비'}
-              {currentStep === 'face' && '얼굴 분석 중'}
-              {currentStep === 'voice' && '음성 분석 중'}
-              {currentStep === 'complete' && '분석 완료!'}
-            </h2>
-            <p id="status-instruction" className="text-gray-300 mt-1">
-              {currentStep === 'ready' && '측정을 시작하려면 아래 버튼을 눌러주세요.'}
-              {currentStep === 'face' && `가이드라인에 얼굴을 맞춰주세요. (${FACE_SCAN_DURATION}초)`}
-              {currentStep === 'voice' && '편안하게 \'아~\' 소리를 내주세요. (5초)'}
-              {currentStep === 'complete' && '결과를 확인하고 나만의 사운드트랙을 만들어보세요.'}
-            </p>
-          </div>
+          {/* Privacy Modal */}
+          {showPrivacyModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+                <h3 className="text-lg font-bold mb-4">개인정보 처리 동의</h3>
+                <p className="text-gray-600 mb-4">
+                  건강 측정을 위해 카메라와 마이크 접근 권한이 필요합니다.
+                  수집된 데이터는 건강 분석 목적으로만 사용됩니다.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setPrivacyConsent(true);
+                      setShowPrivacyModal(false);
+                      startMeasurement();
+                    }}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    동의
+                  </button>
+                  <button
+                    onClick={() => setShowPrivacyModal(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  >
+                    거부
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Visualizer */}
-          <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden mb-4">
-            {/* Face Scan Phase */}
-            {currentStep === 'face' && (
-              <>
+          {/* Ready Step */}
+          {currentStep === 'ready' && (
+            <div>
+              <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">🩺</span>
+              </div>
+              <button
+                onClick={() => setShowPrivacyModal(true)}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-3 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+              >
+                측정 시작하기
+              </button>
+            </div>
+          )}
+
+          {/* Face Scan Step */}
+          {currentStep === 'face' && (
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-4">얼굴 스캔 중...</h2>
+              <div className="relative mb-4">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="w-full h-48 bg-black rounded-lg"
                 />
-                <div className="face-guideline active"></div>
-              </>
-            )}
-            
-            {/* Voice Scan Phase */}
-            {currentStep === 'voice' && (
-              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 text-neon-cyan mx-auto mb-2">🎤</div>
-                  <p className="text-neon-cyan">음성 녹음 중...</p>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-32 h-32 border-2 border-blue-500 rounded-full"></div>
                 </div>
               </div>
-            )}
-            
-            {/* Ready/Complete Phase */}
-            {(currentStep === 'ready' || currentStep === 'complete') && (
-              <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                <span className="text-gray-500">
-                  {currentStep === 'ready' ? '카메라 준비 중...' : '측정 완료!'}
-                </span>
+              <div className="mb-4">
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${faceProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-300 mt-2">{Math.round(faceProgress)}% 완료</p>
               </div>
-            )}
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-700/50 rounded-full h-4 mb-6">
-            <div 
-              className="bg-gradient-to-r from-neon-cyan to-neon-sky h-4 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
+              <p className="text-gray-300">카메라에 얼굴을 비추세요. 30초 동안 측정합니다.</p>
+            </div>
+          )}
 
-          {/* Control Button */}
-          <button 
-            onClick={currentStep === 'complete' ? goToResults : () => setShowPrivacyModal(true)}
-            disabled={isProcessing}
-            className={`w-full font-bold py-4 px-6 rounded-lg transition-all duration-300 shadow-lg text-xl ${
-              currentStep === 'complete'
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
-                : isProcessing
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-75'
-                : 'bg-gradient-to-r from-neon-cyan to-neon-sky hover:from-neon-sky hover:to-neon-cyan text-gray-900 hover:shadow-neon-cyan/50'
-            }`}
-          >
-            {currentStep === 'ready' && '35초 측정 시작하기'}
-            {isProcessing && '측정 중...'}
-            {currentStep === 'complete' && '결과 보기'}
-          </button>
+          {/* Voice Record Step */}
+          {currentStep === 'voice' && (
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-4">음성 녹음 중...</h2>
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <span className="text-4xl">🎤</span>
+              </div>
+              <div className="mb-4">
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${voiceProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-300 mt-2">{Math.round(voiceProgress)}% 완료</p>
+              </div>
+              <p className="text-gray-300">5초 동안 '아~' 발음을 해주세요.</p>
+            </div>
+          )}
 
-          {/* Reset Button (when measuring) */}
-          {isProcessing && (
-            <button 
+          {/* Complete Step */}
+          {currentStep === 'complete' && (
+            <div>
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">✅</span>
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-4">측정 완료!</h2>
+              
+              {/* rPPG 결과 */}
+              {rppgResult && (
+                <div className="bg-blue-900/30 rounded-lg p-4 mb-4 text-left">
+                  <h3 className="text-lg font-semibold text-blue-300 mb-2">심혈관 건강</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>심박수: <span className="text-white">{rppgResult.heartRate} BPM</span></div>
+                    <div>심박변이도: <span className="text-white">{rppgResult.heartRateVariability}ms</span></div>
+                    <div>스트레스: <span className="text-white">{rppgResult.stressLevel}%</span></div>
+                    <div>신뢰도: <span className="text-white">{rppgResult.confidence}%</span></div>
+                  </div>
+                </div>
+              )}
+              
+              {/* 음성 분석 결과 */}
+              {voiceResult && (
+                <div className="bg-green-900/30 rounded-lg p-4 mb-4 text-left">
+                  <h3 className="text-lg font-semibold text-green-300 mb-2">음성 건강</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Jitter: <span className="text-white">{voiceResult.jitter.toFixed(3)}</span></div>
+                    <div>Shimmer: <span className="text-white">{voiceResult.shimmer.toFixed(3)}</span></div>
+                    <div>HNR: <span className="text-white">{voiceResult.hnr}dB</span></div>
+                    <div>스트레스: <span className="text-white">{voiceResult.stressLevel}%</span></div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={saveResults}
+                  className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+                >
+                  결과 저장
+                </button>
+                <button
+                  onClick={resetMeasurement}
+                  className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
+                >
+                  다시 측정
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded text-red-300">
+              {error}
+            </div>
+          )}
+
+          {/* Back Button */}
+          {currentStep !== 'ready' && (
+            <button
               onClick={resetMeasurement}
-              className="w-full mt-3 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
+              className="mt-4 text-gray-400 hover:text-white transition-colors"
             >
-              측정 중단
+              ← 처음으로 돌아가기
             </button>
           )}
         </div>
       </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="fixed top-4 left-4 right-4 bg-red-900/20 border border-red-500/50 rounded-lg p-4 animate-fade-in">
-          <div className="flex items-center space-x-2 text-red-400">
-            <span className="text-lg">⚠️</span>
-            <span className="font-medium">{error}</span>
-          </div>
-          <button 
-            onClick={() => setError(null)} 
-            className="text-red-300 hover:text-red-100 text-sm mt-2"
-          >
-            닫기
-          </button>
-        </div>
-      )}
-
-      {/* 개인정보보호 동의 모달 */}
-      {showPrivacyModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="glass-card p-8 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold text-neon-cyan mb-6 text-center">
-              🛡️ 개인정보보호 동의
-            </h3>
-            
-            <div className="space-y-4 mb-6">
-              {/* 필수 동의 항목 */}
-              <div className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  id="modal-required-consent"
-                  checked={privacyConsent}
-                  onChange={(e) => setPrivacyConsent(e.target.checked)}
-                  className="mt-1 w-5 h-5 bg-gray-800 border-gray-600 text-neon-cyan focus:ring-neon-cyan rounded"
-                />
-                <div className="flex-1">
-                  <label htmlFor="modal-required-consent" className="font-medium text-white cursor-pointer">
-                    필수 동의 항목
-                  </label>
-                  <p className="text-sm text-gray-400 mt-1">
-                    얼굴 영상, 음성 데이터 수집 및 분석, 측정 결과 저장
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 동의 후 측정 시작 버튼 */}
-            <div className="flex space-x-4 justify-center">
-              <button
-                onClick={() => setShowPrivacyModal(false)}
-                className="btn-secondary px-6 py-3"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  if (privacyConsent) {
-                    setShowPrivacyModal(false);
-                    startMeasurement();
-                  }
-                }}
-                disabled={!privacyConsent}
-                className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 ${
-                  privacyConsent
-                    ? 'bg-gradient-to-r from-neon-cyan to-neon-sky hover:from-neon-sky hover:to-neon-cyan text-gray-900 shadow-lg hover:shadow-neon-cyan/50'
-                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {privacyConsent ? '동의하고 측정 시작' : '필수 동의 후 측정 가능'}
-              </button>
-            </div>
-
-            {/* 개인정보보호 관련 안내 */}
-            <p className="text-xs text-gray-500 text-center mt-4">
-              모든 데이터는 비식별 처리되어 안전하게 관리됩니다.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
