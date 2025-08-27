@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "eno-health-helper"
+    "default": "eno-health-helper-2025"
   },
   "targets": {
     "eno-health-helper": {

@@ -6,7 +6,7 @@
     "indexes": "firebase.indexes.json"
   },
   "hosting": {
-    "public": "deploy-ready",
+    "public": "frontend",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -20,6 +20,7 @@
     ]
   },
   "functions": {
-    "source": "functions"
+    "source": "functions",
+    "runtime": "nodejs18"
   }
 }
