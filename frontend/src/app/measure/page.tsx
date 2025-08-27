@@ -10,7 +10,6 @@ export default function MeasurePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<'ready' | 'face' | 'voice' | 'complete'>('ready');
   const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<boolean>(false);
@@ -48,7 +47,7 @@ export default function MeasurePage() {
       
       console.log('Camera permission:', cameraPermission.state);
       console.log('Microphone permission:', microphonePermission.state);
-    } catch (err) {
+    } catch {
       console.log('Permission check not supported, will request during use');
     }
   }, []);
@@ -87,17 +86,21 @@ export default function MeasurePage() {
         
         setCameraPermission(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Camera initialization error:', err);
       
-      if (err.name === 'NotAllowedError') {
-        setError('카메라 접근 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
-      } else if (err.name === 'NotFoundError') {
-        setError('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.');
-      } else if (err.name === 'NotSupportedError') {
-        setError('이 브라우저는 카메라 기능을 지원하지 않습니다.');
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setError('카메라 접근 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+        } else if (err.name === 'NotFoundError') {
+          setError('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.');
+        } else if (err.name === 'NotSupportedError') {
+          setError('이 브라우저는 카메라 기능을 지원하지 않습니다.');
+        } else {
+          setError(`카메라 초기화 오류: ${err.message}`);
+        }
       } else {
-        setError(`카메라 초기화 오류: ${err.message}`);
+        setError('카메라 초기화 중 알 수 없는 오류가 발생했습니다.');
       }
     }
   }, []);
@@ -117,19 +120,27 @@ export default function MeasurePage() {
       });
       
       voiceAnalyzerRef.current = new VoiceAnalyzer(stream);
+      voiceAnalyzerRef.current.onResult((result) => {
+        setVoiceResult(result);
+        console.log('음성 분석 완료:', result);
+      });
       setMicrophonePermission(true);
       
       // 스트림 정리
       stream.getTracks().forEach(track => track.stop());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Microphone initialization error:', err);
       
-      if (err.name === 'NotAllowedError') {
-        setError('마이크 접근 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.');
-      } else if (err.name === 'NotFoundError') {
-        setError('마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.');
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          setError('마이크 접근 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.');
+        } else if (err.name === 'NotFoundError') {
+          setError('마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.');
+        } else {
+          setError(`마이크 초기화 오류: ${err.message}`);
+        }
       } else {
-        setError(`마이크 초기화 오류: ${err.message}`);
+        setError('마이크 초기화 중 알 수 없는 오류가 발생했습니다.');
       }
     }
   }, []);
@@ -144,7 +155,7 @@ export default function MeasurePage() {
 
       setCurrentStep('face');
       setError(null);
-      setIsProcessing(true);
+      // setIsProcessing(true); // Removed as per edit hint
       
       // 카메라 초기화
       await initializeCamera();
@@ -198,7 +209,7 @@ export default function MeasurePage() {
           }
           setVoiceProgress(100);
           setCurrentStep('complete');
-          setIsProcessing(false);
+          // setIsProcessing(false); // Removed as per edit hint
         }, VOICE_RECORD_DURATION);
         
       }, FACE_SCAN_DURATION);
@@ -206,7 +217,7 @@ export default function MeasurePage() {
     } catch (err) {
       console.error('Measurement error:', err);
       setError('측정 중 오류가 발생했습니다.');
-      setIsProcessing(false);
+      // setIsProcessing(false); // Removed as per edit hint
     }
   }, [privacyConsent, initializeCamera, initializeVoiceAnalyzer]);
 
@@ -238,7 +249,7 @@ export default function MeasurePage() {
   const resetMeasurement = useCallback(() => {
     setCurrentStep('ready');
     setError(null);
-    setIsProcessing(false);
+    // setIsProcessing(false); // Removed as per edit hint
     setFaceProgress(0);
     setVoiceProgress(0);
     setRppgResult(null);
@@ -290,6 +301,18 @@ export default function MeasurePage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-2">건강 측정</h1>
             <p className="text-gray-300">카메라와 마이크를 통해 건강 상태를 측정합니다</p>
+            
+            {/* 권한 상태 표시 */}
+            <div className="mt-4 space-y-2">
+              <div className={`permission-status ${cameraPermission ? 'permission-granted' : 'permission-pending'}`}>
+                <span>{cameraPermission ? '✅' : '⏳'}</span>
+                <span>카메라 권한: {cameraPermission ? '허용됨' : '대기 중'}</span>
+              </div>
+              <div className={`permission-status ${microphonePermission ? 'permission-granted' : 'permission-pending'}`}>
+                <span>{microphonePermission ? '✅' : '⏳'}</span>
+                <span>마이크 권한: {microphonePermission ? '허용됨' : '대기 중'}</span>
+              </div>
+            </div>
           </div>
 
           {/* Privacy Modal */}
@@ -350,14 +373,12 @@ export default function MeasurePage() {
                   muted
                   className="w-full h-48 bg-black rounded-lg"
                 />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 border-2 border-blue-500 rounded-full"></div>
-                </div>
+                <div className="camera-guideline"></div>
               </div>
               <div className="mb-4">
-                <div className="w-full bg-gray-700 rounded-full h-2">
+                <div className="progress-bar">
                   <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="progress-fill bg-blue-500"
                     style={{ width: `${faceProgress}%` }}
                   ></div>
                 </div>
@@ -371,19 +392,19 @@ export default function MeasurePage() {
           {currentStep === 'voice' && (
             <div>
               <h2 className="text-xl font-semibold text-white mb-4">음성 녹음 중...</h2>
-              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 voice-recording">
                 <span className="text-4xl">🎤</span>
               </div>
               <div className="mb-4">
-                <div className="w-full bg-gray-700 rounded-full h-2">
+                <div className="progress-bar">
                   <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    className="progress-fill bg-green-500"
                     style={{ width: `${voiceProgress}%` }}
                   ></div>
                 </div>
                 <p className="text-sm text-gray-300 mt-2">{Math.round(voiceProgress)}% 완료</p>
               </div>
-              <p className="text-gray-300">5초 동안 '아~' 발음을 해주세요.</p>
+              <p className="text-gray-300">5초 동안 &ldquo;아~&rdquo; 발음을 해주세요.</p>
             </div>
           )}
 
@@ -397,30 +418,37 @@ export default function MeasurePage() {
               
               {/* rPPG 결과 */}
               {rppgResult && (
-                <div className="bg-blue-900/30 rounded-lg p-4 mb-4 text-left">
+                <div className="result-card">
                   <h3 className="text-lg font-semibold text-blue-300 mb-2">심혈관 건강</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>심박수: <span className="text-white">{rppgResult.heartRate} BPM</span></div>
                     <div>스트레스 지수: <span className="text-white">{(rppgResult.stressIndex * 100).toFixed(1)}%</span></div>
                     <div>신뢰도: <span className="text-white">{(rppgResult.confidence * 100).toFixed(1)}%</span></div>
+                    <div>품질: <span className="text-white">{rppgResult.quality}</span></div>
+                    <div>프레임 수: <span className="text-white">{rppgResult.frameCount}</span></div>
                   </div>
                 </div>
               )}
               
               {/* 음성 분석 결과 */}
               {voiceResult && (
-                <div className="bg-green-900/30 rounded-lg p-4 mb-4 text-left">
+                <div className="result-card">
                   <h3 className="text-lg font-semibold text-green-300 mb-2">음성 건강</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>피치: <span className="text-white">{voiceResult.pitch} Hz</span></div>
                     <div>볼륨: <span className="text-white">{voiceResult.volume}</span></div>
                     <div>명확도: <span className="text-white">{(voiceResult.clarity * 100).toFixed(1)}%</span></div>
                     <div>감정: <span className="text-white">{voiceResult.emotion}</span></div>
+                    <div>기본 주파수: <span className="text-white">{voiceResult.frequency} Hz</span></div>
+                    <div>지터: <span className="text-white">{voiceResult.jitter}</span></div>
+                    <div>쉬머: <span className="text-white">{voiceResult.shimmer}%</span></div>
+                    <div>HNR: <span className="text-white">{voiceResult.hnr} dB</span></div>
+                    <div>품질: <span className="text-white">{voiceResult.quality}</span></div>
                   </div>
                 </div>
               )}
               
-              <div className="flex gap-2">
+              <div className="button-group">
                 <button
                   onClick={saveResults}
                   className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"

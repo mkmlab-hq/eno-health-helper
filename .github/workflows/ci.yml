@@ -1,0 +1,15 @@
+name: eno-health-helper CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  ci:
+    uses: mkmlab-hq/mkm-core-ai/.github/workflows/reusable-ci.yml@main
+    with:
+      node-version: '18'
+      timeout-minutes: 20
+    secrets: inherit

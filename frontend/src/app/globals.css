@@ -98,93 +98,226 @@
 }
 
 /* 새로운 디자인 시스템 */
+
+/* 모바일 최적화 스타일 */
 @layer components {
-  .card {
-    @apply bg-white rounded-lg p-6 shadow-sm;
+  /* 모바일 터치 최적화 */
+  .mobile-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  .bg-eno-100 {
-    background-color: rgb(224 242 254);
+  /* 모바일 카메라 가이드라인 */
+  .camera-guideline {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 3px solid rgba(0, 212, 255, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pulse-glow 2s ease-in-out infinite alternate;
   }
 
-  .text-eno-600 {
-    color: rgb(2 132 199);
+  .camera-guideline::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    height: 160px;
+    border: 2px dashed rgba(0, 212, 255, 0.5);
+    border-radius: 50%;
   }
 
-  .text-eno-700 {
-    color: rgb(3 105 161);
+  /* 모바일 음성 녹음 애니메이션 */
+  .voice-recording {
+    animation: voice-pulse 1s ease-in-out infinite alternate;
   }
 
-  .from-eno-50 {
-    --tw-gradient-from: #f0f9ff var(--tw-gradient-from-position);
-    --tw-gradient-to: rgba(240, 249, 255, 0) var(--tw-gradient-to-position);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  /* 모바일 진행률 바 */
+  .progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
   }
 
-  .to-eno-100 {
-    --tw-gradient-to: #e0f2fe var(--tw-gradient-to-position);
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
   }
-}
 
-/* 다크 테마 지원 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #1a1a2e;
-    --text-primary: #ffffff;
-    --text-secondary: #9ca3af;
-    --accent-primary: #00d4ff;
-    --accent-secondary: #0ea5e9;
+  /* 모바일 결과 카드 */
+  .result-card {
+    background: rgba(17, 25, 40, 0.9);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 16px 0;
+    backdrop-filter: blur(20px);
   }
-}
 
-/* 라이트 테마 */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --accent-primary: #0284c7;
-    --accent-secondary: #0ea5e9;
+  /* 모바일 버튼 그룹 */
+  .button-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
-}
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .glass-card {
-    backdrop-filter: blur(10px);
+  .button-group button {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
   }
-  
-  .btn-primary {
-    @apply py-2 px-4 text-sm;
+
+  /* 모바일 권한 상태 표시 */
+  .permission-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin: 8px 0;
+  }
+
+  .permission-granted {
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+  }
+
+  .permission-denied {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+  }
+
+  .permission-pending {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
   }
 }
 
 /* 애니메이션 */
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
   }
-
-  .animate-neon-glow {
-    animation: neonGlow 2s ease-in-out infinite alternate;
-  }
-
-  .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  100% {
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.8);
   }
 }
 
-/* 키프레임 */
-@keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes voice-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }
 
-@keyframes neonGlow {
-  0% { text-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.6); }
-  100% { text-shadow: 0 0 15px rgba(0, 212, 255, 1), 0 0 25px rgba(0, 212, 255, 0.8); }
+/* 모바일 반응형 디자인 */
+@media (max-width: 768px) {
+  .glass-card {
+    margin: 16px;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .camera-guideline {
+    width: 160px;
+    height: 160px;
+  }
+
+  .camera-guideline::before {
+    width: 120px;
+    height: 120px;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group button {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .result-card {
+    padding: 16px;
+    margin: 12px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .glass-card {
+    margin: 12px;
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .camera-guideline {
+    width: 140px;
+    height: 140px;
+  }
+
+  .camera-guideline::before {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .camera-guideline,
+  .voice-recording {
+    animation: none;
+  }
+
+  .progress-fill {
+    transition: none;
+  }
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(17, 25, 40, 0.85);
+  }
+}
+
+/* 고대비 모드 지원 */
+@media (prefers-contrast: high) {
+  .neon-border {
+    border-width: 2px;
+  }
+
+  .camera-guideline {
+    border-width: 4px;
+  }
 }
 
 /* 스크롤바 스타일링 */
