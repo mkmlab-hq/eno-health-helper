@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Fira+Code:wght@300;400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,15 +7,15 @@
 /* 커스텀 폰트 설정 */
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', monospace;
   }
   
-  code, pre {
-    font-family: 'Fira Code', monospace;
+  body {
+    @apply bg-gray-900 text-white;
   }
 }
 
@@ -38,7 +38,7 @@
 /* 기존 커스텀 클래스들 */
 @layer components {
   .glass-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(17, 25, 40, 0.75);
     backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 212, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -63,7 +63,7 @@
   }
 
   .btn-primary {
-    @apply bg-eno-600 hover:bg-eno-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+    @apply bg-gradient-to-r from-neon-cyan to-blue-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
   }
 
   .btn-secondary {
@@ -90,6 +90,10 @@
     height: 80%;
     border: 1px dashed rgba(0, 212, 255, 0.3);
     border-radius: 50%;
+  }
+
+  .bg-glass {
+    background: rgba(17, 25, 40, 0.8);
   }
 }
 
@@ -158,17 +162,29 @@
 }
 
 /* 애니메이션 */
-@keyframes neon-pulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
   }
-  50% {
-    box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+
+  .animate-neon-glow {
+    animation: neonGlow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 
-.neon-pulse {
-  animation: neon-pulse 2s ease-in-out infinite;
+/* 키프레임 */
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes neonGlow {
+  0% { text-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.6); }
+  100% { text-shadow: 0 0 15px rgba(0, 212, 255, 1), 0 0 25px rgba(0, 212, 255, 0.8); }
 }
 
 /* 스크롤바 스타일링 */

@@ -13,6 +13,8 @@ export default function MeasurePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<boolean>(false);
+  const [microphonePermission, setMicrophonePermission] = useState<boolean>(false);
   
   // 카메라 관련
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -33,20 +35,48 @@ export default function MeasurePage() {
   const FACE_SCAN_DURATION = 30000;  // 30초 얼굴 스캔
   const VOICE_RECORD_DURATION = 5000; // 5초 음성 녹음
 
-  // 카메라 초기화
+  // 권한 확인
+  const checkPermissions = useCallback(async () => {
+    try {
+      // 카메라 권한 확인
+      const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      setCameraPermission(cameraPermission.state === 'granted');
+      
+      // 마이크 권한 확인
+      const microphonePermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      setMicrophonePermission(microphonePermission.state === 'granted');
+      
+      console.log('Camera permission:', cameraPermission.state);
+      console.log('Microphone permission:', microphonePermission.state);
+    } catch (err) {
+      console.log('Permission check not supported, will request during use');
+    }
+  }, []);
+
+  // 카메라 초기화 (모바일 최적화)
   const initializeCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      setError(null);
+      
+      // 모바일 환경에서 최적화된 비디오 설정
+      const constraints = {
         video: {
-          width: 640,
-          height: 480,
-          frameRate: 30
-        }
-      });
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 30, max: 60 },
+          facingMode: 'user', // 전면 카메라 사용
+          aspectRatio: { ideal: 4/3 }
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play();
         
         // rPPG 분석기 초기화
         rppgAnalyzerRef.current = new RPPGAnalyzer(videoRef.current);
@@ -54,16 +84,54 @@ export default function MeasurePage() {
           setRppgResult(result);
           console.log('rPPG 분석 완료:', result);
         });
+        
+        setCameraPermission(true);
       }
-    } catch (err) {
-      setError('카메라 접근 권한이 필요합니다.');
-      console.error('Camera error:', err);
+    } catch (err: any) {
+      console.error('Camera initialization error:', err);
+      
+      if (err.name === 'NotAllowedError') {
+        setError('카메라 접근 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+      } else if (err.name === 'NotFoundError') {
+        setError('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.');
+      } else if (err.name === 'NotSupportedError') {
+        setError('이 브라우저는 카메라 기능을 지원하지 않습니다.');
+      } else {
+        setError(`카메라 초기화 오류: ${err.message}`);
+      }
     }
   }, []);
 
-  // 음성 분석기 초기화
-  const initializeVoiceAnalyzer = useCallback(() => {
-    voiceAnalyzerRef.current = new VoiceAnalyzer();
+  // 음성 분석기 초기화 (모바일 최적화)
+  const initializeVoiceAnalyzer = useCallback(async () => {
+    try {
+      // 마이크 권한 요청
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1
+        }
+      });
+      
+      voiceAnalyzerRef.current = new VoiceAnalyzer(stream);
+      setMicrophonePermission(true);
+      
+      // 스트림 정리
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err: any) {
+      console.error('Microphone initialization error:', err);
+      
+      if (err.name === 'NotAllowedError') {
+        setError('마이크 접근 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.');
+      } else if (err.name === 'NotFoundError') {
+        setError('마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.');
+      } else {
+        setError(`마이크 초기화 오류: ${err.message}`);
+      }
+    }
   }, []);
 
   // 측정 시작
@@ -98,7 +166,7 @@ export default function MeasurePage() {
         });
       }, 100);
       
-      // 30초 후 자동으로 voice 단계로
+      // 얼굴 스캔 완료 후 음성 측정으로 이동
       setTimeout(() => {
         setCurrentStep('voice');
         setFaceProgress(100);
@@ -123,29 +191,24 @@ export default function MeasurePage() {
           });
         }, 100);
         
-        // 5초 후 완료
+        // 음성 녹음 완료
         setTimeout(() => {
-          setCurrentStep('complete');
-          setVoiceProgress(100);
-          setIsProcessing(false);
-          
-          // 음성 분석 결과 가져오기
           if (voiceAnalyzerRef.current) {
-            const result = voiceAnalyzerRef.current.stopRecording();
-            if (result) {
-              setVoiceResult(result);
-              console.log('음성 분석 완료:', result);
-            }
+            voiceAnalyzerRef.current.stopRecording();
           }
+          setVoiceProgress(100);
+          setCurrentStep('complete');
+          setIsProcessing(false);
         }, VOICE_RECORD_DURATION);
         
       }, FACE_SCAN_DURATION);
       
     } catch (err) {
-      setError('측정 시작 실패: ' + (err as Error).message);
+      console.error('Measurement error:', err);
+      setError('측정 중 오류가 발생했습니다.');
       setIsProcessing(false);
     }
-  }, [initializeCamera, initializeVoiceAnalyzer, privacyConsent]);
+  }, [privacyConsent, initializeCamera, initializeVoiceAnalyzer]);
 
   // 측정 결과 저장
   const saveResults = useCallback(async () => {
@@ -161,11 +224,11 @@ export default function MeasurePage() {
       };
       
       const result = await saveHealthData(userId, healthData);
-      if (result.success) {
-        console.log('건강 데이터 저장 성공');
+      if (result) {
+        console.log('건강 데이터 저장 성공:', result);
         router.push('/result');
       } else {
-        console.error('건강 데이터 저장 실패:', result.error);
+        console.error('건강 데이터 저장 실패');
       }
     } catch (error) {
       console.error('결과 저장 중 오류:', error);
@@ -197,20 +260,26 @@ export default function MeasurePage() {
     }
   }, []);
 
+  // 컴포넌트 마운트 시 권한 확인
+  useEffect(() => {
+    checkPermissions();
+  }, [checkPermissions]);
+
   // 컴포넌트 언마운트 시 정리
   useEffect(() => {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
-      if (rppgAnalyzerRef.current) {
-        rppgAnalyzerRef.current.stopAnalysis();
-      }
-      if (voiceAnalyzerRef.current) {
-        voiceAnalyzerRef.current.dispose();
-      }
     };
   }, []);
+
+  // 에러 발생 시 처리
+  useEffect(() => {
+    if (error) {
+      console.error('Error in measure page:', error);
+    }
+  }, [error]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
@@ -332,9 +401,8 @@ export default function MeasurePage() {
                   <h3 className="text-lg font-semibold text-blue-300 mb-2">심혈관 건강</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>심박수: <span className="text-white">{rppgResult.heartRate} BPM</span></div>
-                    <div>심박변이도: <span className="text-white">{rppgResult.heartRateVariability}ms</span></div>
-                    <div>스트레스: <span className="text-white">{rppgResult.stressLevel}%</span></div>
-                    <div>신뢰도: <span className="text-white">{rppgResult.confidence}%</span></div>
+                    <div>스트레스 지수: <span className="text-white">{(rppgResult.stressIndex * 100).toFixed(1)}%</span></div>
+                    <div>신뢰도: <span className="text-white">{(rppgResult.confidence * 100).toFixed(1)}%</span></div>
                   </div>
                 </div>
               )}
@@ -344,10 +412,10 @@ export default function MeasurePage() {
                 <div className="bg-green-900/30 rounded-lg p-4 mb-4 text-left">
                   <h3 className="text-lg font-semibold text-green-300 mb-2">음성 건강</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Jitter: <span className="text-white">{voiceResult.jitter.toFixed(3)}</span></div>
-                    <div>Shimmer: <span className="text-white">{voiceResult.shimmer.toFixed(3)}</span></div>
-                    <div>HNR: <span className="text-white">{voiceResult.hnr}dB</span></div>
-                    <div>스트레스: <span className="text-white">{voiceResult.stressLevel}%</span></div>
+                    <div>피치: <span className="text-white">{voiceResult.pitch} Hz</span></div>
+                    <div>볼륨: <span className="text-white">{voiceResult.volume}</span></div>
+                    <div>명확도: <span className="text-white">{(voiceResult.clarity * 100).toFixed(1)}%</span></div>
+                    <div>감정: <span className="text-white">{voiceResult.emotion}</span></div>
                   </div>
                 </div>
               )}

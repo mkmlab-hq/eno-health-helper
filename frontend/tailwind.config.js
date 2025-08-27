@@ -10,14 +10,18 @@ module.exports = {
       colors: {
         'neon-cyan': '#00d4ff',
         'neon-sky': '#0ea5e9',
+        'glass': 'rgba(17, 25, 40, 0.75)',
         'glass-dark': 'rgba(255, 255, 255, 0.08)',
+        'bg-glass': 'rgba(17, 25, 40, 0.8)',
       },
       fontFamily: {
         'orbitron': ['Orbitron', 'monospace'],
+        'noto': ['Noto Sans KR', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'neon-glow': 'neonGlow 2s ease-in-out infinite alternate',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         fadeIn: {
@@ -31,6 +35,10 @@ module.exports = {
       },
       backdropBlur: {
         'xs': '2px',
+      },
+      boxShadow: {
+        'neon': '0 0 20px rgba(0, 212, 255, 0.5)',
+        'neon-lg': '0 0 30px rgba(0, 212, 255, 0.7)',
       }
     },
   },

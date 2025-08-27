@@ -1,25 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 정적 내보내기 설정
+  // 정적 내보내기 설정 (Firebase Hosting용)
   output: 'export',
   trailingSlash: true,
+  distDir: 'out',
   
-  // 기본 설정만 유지
+  // 기본 설정
   reactStrictMode: true,
+  swcMinify: true,
   
-  // 카메라와 마이크 권한 허용
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(self), microphone=(self), geolocation=(self)',
-          },
-        ],
-      },
-    ];
+  // 이미지 최적화 비활성화 (정적 내보내기에서는 지원하지 않음)
+  images: {
+    unoptimized: true,
+  },
+  
+  // 정적 내보내기 시 동적 라우트 비활성화
+  experimental: {
+    appDir: true,
+  },
+  
+  // 빌드 시 경고 무시
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
 };
 

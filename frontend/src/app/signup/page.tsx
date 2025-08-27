@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -22,6 +24,16 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
+    if (!name.trim()) {
+      setError('이름을 입력해주세요.');
+      return;
+    }
+
+    if (!email.trim()) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
@@ -35,10 +47,33 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signUp(email, password);
+      // 회원가입
+      const userCredential = await signUp(email, password);
+      const user = userCredential.user;
+
+      // 사용자 프로필 정보를 Firestore에 저장
+      await setDoc(doc(db, 'users', user.uid), {
+        name: name.trim(),
+        email: email.trim(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      // 성공 메시지
+      setError('');
       router.push('/measure');
     } catch (error: any) {
-      setError('회원가입에 실패했습니다. 다시 시도해주세요.');
+      console.error('Signup error:', error);
+      
+      if (error.code === 'auth/email-already-in-use') {
+        setError('이미 사용 중인 이메일입니다.');
+      } else if (error.code === 'auth/weak-password') {
+        setError('비밀번호가 너무 약합니다.');
+      } else if (error.code === 'auth/invalid-email') {
+        setError('유효하지 않은 이메일 형식입니다.');
+      } else {
+        setError('회원가입에 실패했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setLoading(false);
     }
@@ -110,14 +145,14 @@ export default function SignupPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-glass border border-gray-600 rounded-lg focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all duration-300 text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 bg-glass border border-gray-600 rounded-lg focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all duration-300 text-white placeholder-gray-400"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-neon-cyan transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -136,14 +171,14 @@ export default function SignupPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-glass border border-gray-600 rounded-lg focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all duration-300 text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 bg-glass border border-gray-600 rounded-lg focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all duration-300 text-white placeholder-gray-400"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-neon-cyan transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -152,9 +187,9 @@ export default function SignupPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-center space-x-2 text-red-400 bg-red-900/20 border border-red-500/30 rounded-lg p-3">
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm">{error}</span>
+              <div className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+                <span className="text-red-400 text-sm">{error}</span>
               </div>
             )}
 
@@ -162,19 +197,21 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-neon-cyan to-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-neon-cyan/90 hover:to-blue-500/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '가입 중...' : '회원가입'}
             </button>
-          </form>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <span className="text-gray-400">이미 계정이 있으신가요? </span>
-            <Link href="/login" className="text-neon-cyan hover:text-neon-sky transition-colors font-medium">
-              로그인
-            </Link>
-          </div>
+            {/* Login Link */}
+            <div className="text-center">
+              <p className="text-gray-400">
+                이미 계정이 있으신가요?{' '}
+                <Link href="/login" className="text-neon-cyan hover:text-neon-cyan/80 transition-colors">
+                  로그인하기
+                </Link>
+              </p>
+            </div>
+          </form>
         </div>
       </div>
     </div>

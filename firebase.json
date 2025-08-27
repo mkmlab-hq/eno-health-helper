@@ -6,11 +6,13 @@
     "indexes": "firebase.indexes.json"
   },
   "hosting": {
-    "public": "frontend",
+    "public": "frontend/out",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/src/**"
     ],
     "rewrites": [
       {
