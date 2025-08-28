@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -212,11 +212,14 @@
 
         <!-- 2. 얼굴 측정 화면 -->
         <div id="face-screen" class="screen flex-grow justify-center items-center">
-            <h2 class="text-2xl font-bold mb-2 font-orbitron">얼굴 인식 중...</h2>
-            <p class="text-gray-300 mb-8">화면의 가이드라인에 얼굴을 맞춰주세요.</p>
+            <h2 class="text-2xl font-bold mb-2 font-orbitron">RPPG 분석 - 얼굴 측정</h2>
+            <p class="text-gray-300 mb-8">카메라에 얼굴을 비추세요</p>
             <div class="relative w-64 h-80 bg-slate-900/50 rounded-lg flex items-center justify-center mb-8 overflow-hidden">
-                <div class="absolute inset-0 bg-black opacity-50"></div>
-                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
+                <!-- 실제 카메라 피드 -->
+                <video id="camera-feed" class="camera-feed" autoplay muted playsinline></video>
+                
+                <!-- 얼굴 가이드라인 (카메라 위에 오버레이) -->
+                <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
                     <defs>
                         <linearGradient id="face-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" style="stop-color:#0ea5e9;"/>
@@ -225,7 +228,11 @@
                     </defs>
                     <ellipse class="face-outline-gradient" cx="100" cy="125" rx="80" ry="110" stroke-width="3" fill="none"/>
                 </svg>
+                
+                <!-- 스캔 라인 -->
                 <div class="scan-line"></div>
+                
+                <!-- 타이머 -->
                 <div class="absolute top-4 right-4">
                     <svg class="w-16 h-16" viewBox="0 0 120 120">
                         <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
@@ -233,8 +240,13 @@
                     </svg>
                     <span id="face-timer-text" class="absolute inset-0 flex items-center justify-center text-xl font-bold font-orbitron">30</span>
                 </div>
+                
+                <!-- 측정 상태 -->
+                <div class="measurement-status">
+                    <span id="measurement-status-text">카메라 준비 중...</span>
+                </div>
             </div>
-            <p class="text-sm text-sky-300 animate-pulse">정확한 측정을 위해 움직이지 마세요.</p>
+            <p class="text-xs text-gray-500">카메라로 얼굴을 인식하여 심박수와 스트레스 수준을 측정합니다</p>
         </div>
 
         <!-- 2.5. 전환 화면 -->
@@ -1392,6 +1404,107 @@
      
      // 페이지 언로드 시 정리
      window.addEventListener('beforeunload', cleanupCamera);
+
+     // 소셜 로그인 핸들러 함수들
+     async function handleGoogleLogin() {
+         try {
+             console.log('Google 로그인 시도...');
+             
+             // Google 로그인 제공자 생성
+             const provider = new firebase.auth.GoogleAuthProvider();
+             provider.addScope('email');
+             provider.addScope('profile');
+             
+             // Firebase Auth로 Google 로그인
+             const result = await firebase.auth().signInWithPopup(provider);
+             
+             if (result.user) {
+                 console.log('Google 로그인 성공:', result.user.displayName);
+                 
+                 // 사용자 정보 저장
+                 const userData = {
+                     uid: result.user.uid,
+                     email: result.user.email,
+                     displayName: result.user.displayName,
+                     photoURL: result.user.photoURL,
+                     provider: 'google'
+                 };
+                 
+                 // 로컬 스토리지에 사용자 정보 저장
+                 localStorage.setItem('enoUser', JSON.stringify(userData));
+                 
+                 // 헤더 업데이트
+                 updateHeaderForUser(userData);
+                 
+                 // 결과 화면으로 이동
+                 showScreen('result');
+                 
+                 // 성공 메시지
+                 showNotification('Google 계정으로 로그인되었습니다!', 'success');
+             }
+         } catch (error) {
+             console.error('Google 로그인 오류:', error);
+             
+             if (error.code === 'auth/popup-closed-by-user') {
+                 showNotification('로그인 창이 닫혔습니다. 다시 시도해주세요.', 'error');
+             } else if (error.code === 'auth/popup-blocked') {
+                 showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+             } else {
+                 showNotification('Google 로그인 중 오류가 발생했습니다.', 'error');
+             }
+         }
+     }
+     
+     async function handleKakaoLogin() {
+         try {
+             console.log('카카오톡 로그인 시도...');
+             
+             // Kakao 로그인 실행
+             const response = await new Promise((resolve, reject) => {
+                 Kakao.Auth.login({
+                     success: resolve,
+                     fail: reject
+                 });
+             });
+             
+             if (response) {
+                 // 사용자 정보 가져오기
+                 const userInfo = await new Promise((resolve, reject) => {
+                     Kakao.API.request({
+                         url: '/v2/user/me',
+                         success: resolve,
+                         fail: reject
+                     });
+                 });
+                 
+                 console.log('카카오톡 로그인 성공:', userInfo);
+                 
+                 // 임시로 로컬 사용자 정보 생성
+                 const userData = {
+                     uid: 'kakao_' + userInfo.id,
+                     email: userInfo.kakao_account?.email || null,
+                     displayName: userInfo.properties?.nickname || '카카오 사용자',
+                     photoURL: userInfo.properties?.profile_image || null,
+                     provider: 'kakao'
+                 };
+                 
+                 // 로컬 스토리지에 사용자 정보 저장
+                 localStorage.setItem('enoUser', JSON.stringify(userData));
+                 
+                 // 헤더 업데이트
+                 updateHeaderForUser(userData);
+                 
+                 // 결과 화면으로 이동
+                 showScreen('result');
+                 
+                 // 성공 메시지
+                 showNotification('카카오톡으로 로그인되었습니다!', 'success');
+             }
+         } catch (error) {
+             console.error('카카오톡 로그인 오류:', error);
+             showNotification('카카오톡 로그인 중 오류가 발생했습니다.', 'error');
+         }
+     }
 
 </script>
 </body>
