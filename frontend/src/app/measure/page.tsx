@@ -15,6 +15,11 @@ export default function MeasurePage() {
   const [cameraPermission, setCameraPermission] = useState<boolean>(false);
   const [microphonePermission, setMicrophonePermission] = useState<boolean>(false);
   
+  // 실제값 모드 관련
+  const [useRealValue, setUseRealValue] = useState<boolean>(false);
+  const [analysisMode, setAnalysisMode] = useState<string>('시뮬레이션 모드');
+  const [realValueAvailable, setRealValueAvailable] = useState<boolean>(false);
+  
   // 카메라 관련
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -77,6 +82,13 @@ export default function MeasurePage() {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
         
+        // 비디오 로드 완료 대기
+        await new Promise((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = resolve;
+          }
+        });
+        
         // rPPG 분석기 초기화
         rppgAnalyzerRef.current = new RPPGAnalyzer(videoRef.current);
         rppgAnalyzerRef.current.onResult((result) => {
@@ -85,6 +97,7 @@ export default function MeasurePage() {
         });
         
         setCameraPermission(true);
+        console.log('카메라 초기화 성공');
       }
     } catch (err: unknown) {
       console.error('Camera initialization error:', err);
@@ -96,6 +109,8 @@ export default function MeasurePage() {
           setError('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.');
         } else if (err.name === 'NotSupportedError') {
           setError('이 브라우저는 카메라 기능을 지원하지 않습니다.');
+        } else if (err.name === 'NotReadableError') {
+          setError('카메라가 다른 애플리케이션에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.');
         } else {
           setError(`카메라 초기화 오류: ${err.message}`);
         }
@@ -125,9 +140,9 @@ export default function MeasurePage() {
         console.log('음성 분석 완료:', result);
       });
       setMicrophonePermission(true);
+      console.log('음성 분석기 초기화 성공');
       
-      // 스트림 정리
-      stream.getTracks().forEach(track => track.stop());
+      // 스트림을 정리하지 않고 VoiceAnalyzer에서 관리
     } catch (err: unknown) {
       console.error('Microphone initialization error:', err);
       
@@ -136,6 +151,8 @@ export default function MeasurePage() {
           setError('마이크 접근 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.');
         } else if (err.name === 'NotFoundError') {
           setError('마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.');
+        } else if (err.name === 'NotReadableError') {
+          setError('마이크가 다른 애플리케이션에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.');
         } else {
           setError(`마이크 초기화 오류: ${err.message}`);
         }
@@ -155,15 +172,22 @@ export default function MeasurePage() {
 
       setCurrentStep('face');
       setError(null);
-      // setIsProcessing(true); // Removed as per edit hint
+      setFaceProgress(0);
+      setVoiceProgress(0);
+      
+      console.log('카메라 초기화 시작...');
       
       // 카메라 초기화
       await initializeCamera();
       
-      // rPPG 분석 시작
-      if (rppgAnalyzerRef.current) {
-        rppgAnalyzerRef.current.startAnalysis();
+      if (!rppgAnalyzerRef.current) {
+        throw new Error('카메라 분석기 초기화 실패');
       }
+      
+      console.log('rPPG 분석 시작...');
+      
+      // rPPG 분석 시작
+      rppgAnalyzerRef.current.startAnalysis();
       
       // 진행률 업데이트
       const progressInterval = setInterval(() => {
@@ -178,46 +202,63 @@ export default function MeasurePage() {
       }, 100);
       
       // 얼굴 스캔 완료 후 음성 측정으로 이동
-      setTimeout(() => {
-        setCurrentStep('voice');
-        setFaceProgress(100);
-        
-        // 음성 분석기 초기화
-        initializeVoiceAnalyzer();
-        
-        // 음성 녹음 시작
-        if (voiceAnalyzerRef.current) {
-          voiceAnalyzerRef.current.startRecording();
-        }
-        
-        // 음성 진행률 업데이트
-        const voiceProgressInterval = setInterval(() => {
-          setVoiceProgress(prev => {
-            const newProgress = prev + (100 / (VOICE_RECORD_DURATION / 100));
-            if (newProgress >= 100) {
-              clearInterval(voiceProgressInterval);
-              return 100;
-            }
-            return newProgress;
-          });
-        }, 100);
-        
-        // 음성 녹음 완료
-        setTimeout(() => {
-          if (voiceAnalyzerRef.current) {
-            voiceAnalyzerRef.current.stopRecording();
+      setTimeout(async () => {
+        try {
+          setCurrentStep('voice');
+          setFaceProgress(100);
+          
+          console.log('음성 분석기 초기화 시작...');
+          
+          // 음성 분석기 초기화
+          await initializeVoiceAnalyzer();
+          
+          if (!voiceAnalyzerRef.current) {
+            throw new Error('음성 분석기 초기화 실패');
           }
-          setVoiceProgress(100);
-          setCurrentStep('complete');
-          // setIsProcessing(false); // Removed as per edit hint
-        }, VOICE_RECORD_DURATION);
+          
+          console.log('음성 녹음 시작...');
+          
+          // 음성 녹음 시작
+          const recordingStarted = await voiceAnalyzerRef.current.startRecording();
+          
+          if (!recordingStarted) {
+            throw new Error('음성 녹음 시작 실패');
+          }
+          
+          // 음성 진행률 업데이트
+          const voiceProgressInterval = setInterval(() => {
+            setVoiceProgress(prev => {
+              const newProgress = prev + (100 / (VOICE_RECORD_DURATION / 100));
+              if (newProgress >= 100) {
+                clearInterval(voiceProgressInterval);
+                return 100;
+              }
+              return newProgress;
+            });
+          }, 100);
+          
+          // 음성 녹음 완료
+          setTimeout(() => {
+            if (voiceAnalyzerRef.current) {
+              voiceAnalyzerRef.current.stopRecording();
+            }
+            setVoiceProgress(100);
+            setCurrentStep('complete');
+            console.log('측정 완료');
+          }, VOICE_RECORD_DURATION);
+          
+        } catch (voiceError) {
+          console.error('음성 측정 오류:', voiceError);
+          setError(`음성 측정 중 오류가 발생했습니다: ${voiceError instanceof Error ? voiceError.message : '알 수 없는 오류'}`);
+          setCurrentStep('face'); // 얼굴 측정 단계로 되돌리기
+        }
         
       }, FACE_SCAN_DURATION);
       
     } catch (err) {
       console.error('Measurement error:', err);
-      setError('측정 중 오류가 발생했습니다.');
-      // setIsProcessing(false); // Removed as per edit hint
+      setError(`측정 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      setCurrentStep('ready'); // 준비 단계로 되돌리기
     }
   }, [privacyConsent, initializeCamera, initializeVoiceAnalyzer]);
 

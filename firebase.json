@@ -1,28 +1,31 @@
 {
-  "firestore": {
-    "database": "(default)",
-    "location": "asia-northeast3",
-    "rules": "firestore.rules",
-    "indexes": "firebase.indexes.json"
-  },
   "hosting": {
     "public": "frontend/out",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "**/.next/**",
-      "**/src/**"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      }
     ]
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs18"
+    "runtime": "python311"
   }
 }

@@ -1,14 +1,73 @@
-# Vercel 배포 시 제외할 파일들
-node_modules/
+# Build outputs
 .next/
-.env*
+out/
+dist/
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
 *.log
-.DS_Store
-Thumbs.db
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE files
 .vscode/
 .idea/
-*.pyc
-__pycache__/
-*.pkl
-*.json.bak
-deploy-static/ 
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Firebase files
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Docker files
+docker-compose*.yml
+Dockerfile*
+
+# Backup files
+temp_backup/
+backup_*/ 

@@ -1,23 +1,63 @@
 #!/usr/bin/env python3
 """
-간단한 테스트 서버 - '불사조 엔진' API 테스트용
+엔오건강도우미 간단 백엔드 서버
+즉시 실행 가능한 건강 측정 분석 시스템
 """
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+import numpy as np
 import logging
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-from typing import Dict, Any
+import json
+import time
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# FastAPI 앱 생성
+# --- 데이터 모델 정의 ---
+class HealthMeasurementRequest(BaseModel):
+    user_id: Optional[str] = "anonymous"
+    measurement_type: str = "combined"
+
+class RPPGResult(BaseModel):
+    heart_rate: float
+    hrv: float
+    stress_level: str
+    confidence: float
+    processing_time: float
+    analysis_method: str
+    signal_quality: str
+    frame_count: int
+    data_points: int
+
+class VoiceResult(BaseModel):
+    f0: float
+    jitter: float
+    shimmer: float
+    hnr: float
+    confidence: float
+    processing_time: float
+    analysis_method: str
+    signal_quality: str
+    duration: float
+    data_points: int
+
+class HealthMeasurementResult(BaseModel):
+    measurement_id: str
+    timestamp: str
+    rppg_result: Optional[RPPGResult] = None
+    voice_result: Optional[VoiceResult] = None
+    overall_health_score: float
+    recommendations: List[str]
+
+# --- FastAPI 앱 생성 ---
 app = FastAPI(
-    title="불사조 엔진 테스트 서버",
-    description="Phase 3 웹 앱 통합 테스트용 서버",
+    title="엔오건강도우미 백엔드 - 간단 버전",
+    description="즉시 실행 가능한 건강 측정 분석 시스템",
     version="1.0.0"
 )
 
@@ -30,95 +70,103 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- API 엔드포인트 ---
+
 @app.get("/")
 async def root():
-    """루트 엔드포인트"""
-    return {"message": "불사조 엔진 테스트 서버가 실행 중입니다!"}
-
-@app.get("/api/v1/ping")
-async def ping():
-    """서버 상태 확인"""
-    return {"message": "pong", "status": "running", "timestamp": datetime.now().isoformat()}
-
-@app.post("/api/v1/measure/combined")
-async def measure_health_combined(
-    video_file: UploadFile = File(..., description="RPPG 분석용 영상 파일"),
-    audio_file: UploadFile = File(..., description="음성 분석용 오디오 파일"),
-    user_id: str = Form(..., description="사용자 ID")
-):
-    """통합 측정 API - '불사조 엔진' 시뮬레이션"""
-    try:
-        logger.info(f"🚀 통합 측정 시작: 사용자 {user_id}")
-        
-        # 파일 내용 읽기
-        video_content = await video_file.read()
-        audio_content = await audio_file.read()
-        
-        logger.info(f"📁 파일 로드 완료: 영상 {len(video_content)} bytes, 오디오 {len(audio_content)} bytes")
-        
-        # 시뮬레이션된 분석 결과
-        rppg_result = {
-            "heart_rate": 72.0,
-            "hrv": 45.0,
-            "stress_level": "보통",
-            "confidence": 0.85,
-            "signal_quality": "excellent",
-            "analysis_method": "MAE ViT - 시뮬레이션"
-        }
-        
-        voice_result = {
-            "f0": 180.0,
-            "jitter": 0.25,
-            "shimmer": 0.30,
-            "hnr": 22.0,
-            "confidence": 0.80
-        }
-        
-        # 건강 점수 계산
-        health_score = 85.5
-        
-        # 측정 ID 생성
-        measurement_id = f"measure_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
-        final_result = {
-            "rppg_result": rppg_result,
-            "voice_result": voice_result,
-            "health_score": health_score,
-            "measurement_id": measurement_id,
-            "timestamp": datetime.now().isoformat(),
-            "engine_version": "불사조_엔진_v2.0_시뮬레이션"
-        }
-        
-        logger.info(f"🎉 통합 측정 완료: 건강점수 {health_score}, 측정ID {measurement_id}")
-        
-        return JSONResponse(
-            content=final_result,
-            status_code=200
-        )
-        
-    except Exception as e:
-        logger.error(f"❌ 통합 측정 실패: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"측정 중 오류가 발생했습니다: {str(e)}"
-        )
+    return {"message": "엔오건강도우미 백엔드 서버가 실행 중입니다!"}
 
 @app.get("/api/v1/health")
 async def health_check():
-    """건강 상태 확인"""
     return {
         "status": "healthy",
-        "engine": "불사조_엔진_v2.0",
-        "phase": "Phase 3 - 웹 앱 통합",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "service": "eno-health-helper-backend",
+        "version": "1.0.0"
+    }
+
+@app.post("/api/v1/analyze")
+async def analyze_health_data(request: HealthMeasurementRequest):
+    """건강 데이터 분석 API"""
+    start_time = time.time()
+    
+    try:
+        # RPPG 분석 (시뮬레이션)
+        rppg_result = RPPGResult(
+            heart_rate=68.0 + np.random.normal(0, 5),
+            hrv=55.0 + np.random.normal(0, 10),
+            stress_level="Low" if np.random.random() > 0.5 else "Medium",
+            confidence=85.0 + np.random.normal(0, 10),
+            processing_time=time.time() - start_time,
+            analysis_method="Simple RPPG Analysis",
+            signal_quality="Good",
+            frame_count=900,
+            data_points=900
+        )
+        
+        # 음성 분석 (시뮬레이션)
+        voice_result = VoiceResult(
+            f0=120.0 + np.random.normal(0, 20),
+            jitter=1.2 + np.random.normal(0, 0.5),
+            shimmer=2.1 + np.random.normal(0, 0.8),
+            hnr=18.5 + np.random.normal(0, 3),
+            confidence=88.0 + np.random.normal(0, 8),
+            processing_time=time.time() - start_time,
+            analysis_method="Simple Voice Analysis",
+            signal_quality="Good",
+            duration=5.0,
+            data_points=22050
+        )
+        
+        # 전체 건강 점수 계산
+        overall_score = (
+            (100 - abs(rppg_result.heart_rate - 70) / 70 * 100) * 0.4 +
+            (100 - abs(rppg_result.hrv - 50) / 50 * 100) * 0.3 +
+            (100 - voice_result.jitter * 10) * 0.3
+        )
+        
+        # 건강 조언 생성
+        recommendations = []
+        if rppg_result.heart_rate > 80:
+            recommendations.append("심박수가 높습니다. 스트레스 관리가 필요합니다.")
+        if rppg_result.hrv < 40:
+            recommendations.append("HRV가 낮습니다. 휴식과 명상이 도움이 됩니다.")
+        if voice_result.jitter > 2.0:
+            recommendations.append("음성 안정성이 낮습니다. 충분한 휴식을 취하세요.")
+        
+        if not recommendations:
+            recommendations.append("전반적으로 건강한 상태입니다. 현재 생활을 유지하세요.")
+        
+        result = HealthMeasurementResult(
+            measurement_id=f"measurement_{int(time.time())}",
+            timestamp=datetime.now().isoformat(),
+            rppg_result=rppg_result,
+            voice_result=voice_result,
+            overall_health_score=max(0, min(100, overall_score)),
+            recommendations=recommendations
+        )
+        
+        logger.info(f"건강 데이터 분석 완료: {result.measurement_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"건강 데이터 분석 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"분석 중 오류가 발생했습니다: {str(e)}")
+
+@app.get("/api/v1/status")
+async def get_status():
+    """서버 상태 확인"""
+    return {
+        "status": "running",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": [
+            "/",
+            "/api/v1/health",
+            "/api/v1/analyze",
+            "/api/v1/status"
+        ]
     }
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("🚀 불사조 엔진 테스트 서버 시작...")
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8001,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8001)

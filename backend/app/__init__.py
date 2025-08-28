@@ -1,11 +1,10 @@
 
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
-from redis import asyncio as aioredis
+import logging
+
+logger = logging.getLogger(__name__)
 
 def init_cache(app):
-	@app.on_event("startup")
-	async def startup():
-		redis = aioredis.from_url("redis://localhost", encoding="utf8", decode_responses=True)
-		FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
-		print("FastAPI Cache with Redis is initialized.")
+    @app.on_event("startup")
+    async def startup():
+        logger.info("✅ 캐시 시스템 없이 서버 시작")
+        # 캐시 시스템 비활성화 - 성능 최적화는 MediaPipe 지연 초기화로만 진행

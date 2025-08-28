@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import PWAInstaller from '@/components/PWAInstaller'
+import { AuthProvider } from '@/context/AuthContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -58,14 +59,6 @@ export const metadata: Metadata = {
     google: 'your-google-verification-code',
   },
   manifest: '/manifest.json',
-  themeColor: '#00d4ff',
-  colorScheme: 'dark',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
@@ -74,6 +67,15 @@ export const metadata: Metadata = {
     'msapplication-TileColor': '#00d4ff',
     'msapplication-config': '/browserconfig.xml',
   },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#00d4ff',
+  colorScheme: 'dark',
 }
 
 export default function RootLayout({
@@ -123,8 +125,10 @@ export default function RootLayout({
         <link rel="canonical" href="https://eno-health-helper.firebaseapp.com" />
       </head>
       <body className={inter.className}>
-        {children}
-        <PWAInstaller />
+        <AuthProvider>
+          {children}
+          <PWAInstaller />
+        </AuthProvider>
       </body>
     </html>
   )

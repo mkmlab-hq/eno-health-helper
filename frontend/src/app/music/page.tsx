@@ -23,7 +23,8 @@ export default function MusicPage() {
       userId: currentUser.uid,
       emotion: 'calm',
       intensity: 0.7,
-      timestamp: new Date().toISOString(),
+      confidence: 0.8,
+      timestamp: new Date(),
     });
   }, [currentUser, router]);
 

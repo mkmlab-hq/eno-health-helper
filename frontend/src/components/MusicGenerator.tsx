@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { Play, Pause, Download, Music, Heart, Brain, Sparkles, Eye, Code } from 'lucide-react';
-import { EmotionData } from '../lib/sunoAI';
-import SunoAIClient, { MusicGenerationResponse } from '../lib/sunoAI';
+import { EmotionData, SunoAIClient, MusicGenerationResponse } from '../lib/sunoAI';
 import { SunoAIPromptMapper } from '../lib/sunoAIPrompts';
 
 interface MusicGeneratorProps {
@@ -25,6 +24,9 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
   
   // Suno AI 클라이언트
   const [sunoClient] = useState(() => new SunoAIClient(process.env.NEXT_PUBLIC_SUNO_API_KEY || ''));
+  
+  // 프롬프트 매퍼
+  const [promptMapper] = useState(() => new SunoAIPromptMapper());
   
   // 프롬프트 미리보기 상태
   const [showPromptPreview, setShowPromptPreview] = useState(false);
@@ -136,15 +138,27 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
    * 감정 상태에 따른 음악 스타일 설명
    */
   const getMusicStyleDescription = () => {
-    return SunoAIPromptMapper.getEmotionKoreanDescription(emotionData.emotion);
+    return promptMapper.getEmotionKoreanDescription(emotionData.emotion);
   };
 
   /**
    * 권장 BPM 계산
    */
   const getRecommendedBPM = () => {
-    const prompt = SunoAIPromptMapper.getPromptForEmotion(emotionData.emotion);
-    return prompt ? prompt.bpm : 80;
+    // 감정에 따른 BPM 추천 (고정값)
+    const bpmMap: Record<string, number> = {
+      'calm': 60,
+      'relaxed': 70,
+      'focused': 80,
+      'energetic': 120,
+      'excited': 140,
+      'stressed': 90,
+      'anxious': 100,
+      'happy': 110,
+      'sad': 65,
+      'angry': 130
+    };
+    return bpmMap[emotionData.emotion] || 80;
   };
 
   /**
@@ -227,7 +241,7 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
               Suno AI 프롬프트
             </h4>
             <p className="text-gray-300 text-sm leading-relaxed font-mono">
-              {SunoAIPromptMapper.generateOptimizedPrompt(emotionData.emotion, emotionData.intensity)}
+                              {promptMapper.generateOptimizedPrompt(emotionData.emotion, emotionData.intensity)}
             </p>
           </div>
         )}

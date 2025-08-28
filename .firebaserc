@@ -1,27 +1,5 @@
 {
   "projects": {
-    "default": "eno-health-helper-2025"
-  },
-  "targets": {
-    "eno-health-helper": {
-      "hosting": {
-        "mkmlab-space": [
-          "mkmlab-space"
-        ],
-        "eno-no1kmedi-com-6cb04": [
-          "eno-no1kmedi-com-6cb04"
-        ],
-        "eno-no1kmedi-com-f6bad": [
-          "eno-no1kmedi-com-f6bad"
-        ],
-        "eno-no1kmedi-com": [
-          "eno-no1kmedi-com-17975"
-        ],
-        "eno-no1kmedi-com-89e7e": [
-          "eno-no1kmedi-com-89e7e"
-        ]
-      }
-    }
-  },
-  "etags": {}
+    "default": "eno-health-helper"
+  }
 }

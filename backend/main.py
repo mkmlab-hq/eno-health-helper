@@ -111,12 +111,12 @@ else:
 def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGResult:
     """
     비디오 데이터에서 RPPG 분석 수행
-    실제 분석기가 있으면 실제 알고리즘, 없으면 시뮬레이션
+    실제 분석기가 있으면 실제 알고리즘, 없으면 서비스 불가
     """
     try:
         if REAL_ANALYZERS_AVAILABLE and rppg_analyzer:
             logger.info("🔬 실제 RPPG 분석기 사용")
-            result = rppg_analyzer.analyze_video_frames(video_data, frame_count)
+            result = rppg_analyzer.analyze_video_data(video_data, frame_count)
             
             return RPPGResult(
                 heart_rate=result["heart_rate"],
@@ -126,14 +126,14 @@ def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGRe
                 processing_time=result["processing_time"],
                 analysis_method=result["analysis_method"],
                 signal_quality=result["signal_quality"],
-                frame_count=result["frame_count"],
+                frame_count=frame_count,
                 data_points=result["data_points"]
             )
         else:
-            logger.error("❌ 실제 RPPG 분석기가 필요합니다. 시뮬레이션 모드는 지원하지 않습니다.")
+            logger.error("❌ 실제 RPPG 분석기를 사용할 수 없습니다")
             raise HTTPException(
                 status_code=503, 
-                detail="실제 RPPG 분석기가 필요합니다. 시뮬레이션 모드는 허용되지 않습니다."
+                detail="건강 분석 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요."
             )
         
     except Exception as e:
@@ -144,7 +144,7 @@ def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGRe
 def analyze_voice_from_audio(audio_data: bytes, duration: float = 5.0) -> VoiceResult:
     """
     오디오 데이터에서 음성 분석 수행
-    실제 분석기가 있으면 실제 알고리즘, 없으면 시뮬레이션
+    실제 분석기가 있으면 실제 알고리즘, 없으면 서비스 불가
     """
     try:
         if REAL_ANALYZERS_AVAILABLE and voice_analyzer:
@@ -164,10 +164,10 @@ def analyze_voice_from_audio(audio_data: bytes, duration: float = 5.0) -> VoiceR
                 data_points=result["data_points"]
             )
         else:
-            logger.error("❌ 실제 음성 분석기가 필요합니다. 시뮬레이션 모드는 지원하지 않습니다.")
+            logger.error("❌ 실제 음성 분석기를 사용할 수 없습니다")
             raise HTTPException(
                 status_code=503, 
-                detail="실제 음성 분석기가 필요합니다. 시뮬레이션 모드는 허용되지 않습니다."
+                detail="건강 분석 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요."
             )
         
     except Exception as e:
@@ -180,7 +180,7 @@ def analyze_voice_from_audio(audio_data: bytes, duration: float = 5.0) -> VoiceR
 async def root():
     """루트 엔드포인트"""
     return {
-        "message": "엔오건강도우미 백엔드 서버 - 진짜 기능",
+        "message": "엔오건강도우미 백엔드 서버 - 실제 건강 분석 도구",
         "status": "running",
         "real_analyzers": REAL_ANALYZERS_AVAILABLE,
         "version": "2.0.0"
@@ -194,8 +194,8 @@ async def health_check():
         "message": "Backend is running",
         "timestamp": "2025-01-20T00:00:00Z",
         "services": {
-            "rppg_analysis": f"available ({'real' if REAL_ANALYZERS_AVAILABLE else 'simulation'})",
-            "voice_analysis": f"available ({'real' if REAL_ANALYZERS_AVAILABLE else 'simulation'})",
+            "rppg_analysis": "available (real)" if REAL_ANALYZERS_AVAILABLE else "unavailable",
+            "voice_analysis": "available (real)" if REAL_ANALYZERS_AVAILABLE else "unavailable",
             "data_storage": "available",
             "real_analyzers_loaded": REAL_ANALYZERS_AVAILABLE
         }
@@ -226,8 +226,8 @@ async def measure_rppg(
             "measurement_id": f"rppg_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "result": rppg_result.dict(),
-            "analysis_type": "real" if REAL_ANALYZERS_AVAILABLE else "simulation"
+            "result": rppg_result.model_dump(),
+            "analysis_type": "real"
         }
         
     except Exception as e:
@@ -259,8 +259,8 @@ async def measure_voice(
             "measurement_id": f"voice_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "result": voice_result.dict(),
-            "analysis_type": "real" if REAL_ANALYZERS_AVAILABLE else "simulation"
+            "result": voice_result.model_dump(),
+            "analysis_type": "real"
         }
         
     except Exception as e:
@@ -304,11 +304,11 @@ async def measure_combined_health(
             "measurement_id": f"combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "rppg_result": rppg_result.dict(),
-            "voice_result": voice_result.dict(),
+            "rppg_result": rppg_result.model_dump(),
+            "voice_result": voice_result.model_dump(),
             "overall_health_score": health_score,
             "recommendations": recommendations,
-            "analysis_type": "real" if REAL_ANALYZERS_AVAILABLE else "simulation"
+            "analysis_type": "real"
         }
         
     except Exception as e:
