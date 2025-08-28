@@ -140,6 +140,87 @@
             -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
             mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
         }
+        
+        /* 카메라 피드 및 측정 상태 스타일 */
+        .camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+        .measurement-status {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: #0ea5e9;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        /* 반응형 디자인 개선 */
+        @media (max-width: 768px) {
+            .screen {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.875rem !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            .w-64 {
+                width: 18rem !important;
+            }
+            
+            .h-80 {
+                height: 20rem !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .screen {
+                padding: 0.75rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            h2 {
+                font-size: 1.25rem !important;
+            }
+            
+            .w-64 {
+                width: 16rem !important;
+            }
+            
+            .h-80 {
+                height: 18rem !important;
+            }
+        }
+        
+        /* 가이드라인 비율 조정 */
+        .face-outline-gradient {
+            stroke: url(#face-gradient);
+            stroke-width: 2;
+            stroke-dasharray: 1000;
+            animation: dash 5s linear infinite;
+        }
+        
+        /* 음성 파형 캔버스 반응형 */
+        #voice-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+            max-height: 100%;
+        }
     </style>
 </head>
 <body class="text-white flex items-center justify-center min-h-screen p-4">
@@ -537,10 +618,15 @@
             }
         }
         
+        // 신뢰도 계산 (더 현실적인 범위로 조정)
+        const maxPossibleScore = 15; // 최대 가능 점수
+        const confidence = Math.min(75, Math.max(40, Math.round((maxScore / maxPossibleScore) * 60 + 20))); // 40-75% 범위
+        
         return {
             type: classifiedType,
-            confidence: Math.min(95, maxScore * 15), // 신뢰도 계산
-            scores: scores
+            confidence: confidence,
+            scores: scores,
+            note: '이 분석은 참고용이며, 정확한 사상체질 진단은 전문 한의사와 상담하시기 바랍니다.'
         };
     }
     
@@ -1240,9 +1326,17 @@
          const confidence = document.getElementById('sasang-confidence');
          
          if (typeDisplay && description && confidence) {
-             typeDisplay.textContent = sasangResult.type;
-             description.textContent = `당신의 생체 신호는 ${sasangResult.type}의 특성과 높은 유사도를 보입니다. AI가 분석한 결과입니다.`;
-             confidence.textContent = `신뢰도: ${sasangResult.confidence}%`;
+                         typeDisplay.textContent = sasangResult.type;
+            description.textContent = `당신의 생체 신호는 ${sasangResult.type}의 특성과 유사도를 보입니다. AI가 분석한 결과입니다.`;
+            confidence.textContent = `신뢰도: ${sasangResult.confidence}% (참고용)`;
+            
+            // 주의사항 표시
+            if (sasangResult.note) {
+                const noteElement = document.createElement('p');
+                noteElement.className = 'text-xs text-gray-400 mt-2 italic';
+                noteElement.textContent = sasangResult.note;
+                confidence.parentNode.appendChild(noteElement);
+            }
              
              // 건강 조언 표시
              const healthAdvice = generateHealthAdvice(sasangResult.type);
@@ -1349,12 +1443,66 @@
          }, 30000); // 30초
      }
      
-     // 음성 데이터 수집
+     // 음성 데이터 수집 및 실시간 파형 표시
      function startVoiceDataCollection() {
          voiceData = [];
          
          navigator.mediaDevices.getUserMedia({ audio: true })
              .then(stream => {
+                 // 실시간 음성 파형 분석을 위한 AudioContext 생성
+                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                 const analyser = audioContext.createAnalyser();
+                 const microphone = audioContext.createMediaStreamSource(stream);
+                 
+                 // 분석기 설정
+                 analyser.fftSize = 256;
+                 const bufferLength = analyser.frequencyBinCount;
+                 const dataArray = new Uint8Array(bufferLength);
+                 
+                 // 마이크 연결
+                 microphone.connect(analyser);
+                 
+                 // 실시간 파형 그리기
+                 const canvas = document.getElementById('voice-canvas');
+                 const ctx = canvas.getContext('2d');
+                 
+                 function drawVoiceWaveform() {
+                     const width = canvas.width;
+                     const height = canvas.height;
+                     
+                     // 캔버스 초기화
+                     ctx.clearRect(0, 0, width, height);
+                     
+                     // 음성 데이터 분석
+                     analyser.getByteFrequencyData(dataArray);
+                     
+                     // 파형 그리기
+                     ctx.fillStyle = '#0ea5e9';
+                     ctx.lineWidth = 2;
+                     ctx.beginPath();
+                     
+                     const barWidth = (width / bufferLength) * 2.5;
+                     let barHeight;
+                     let x = 0;
+                     
+                     for (let i = 0; i < bufferLength; i++) {
+                         barHeight = (dataArray[i] / 255) * height;
+                         
+                         // 목소리 크기에 맞춰 파형 높이 조정
+                         const adjustedHeight = Math.max(barHeight, 2); // 최소 높이 보장
+                         
+                         ctx.fillRect(x, height - adjustedHeight, barWidth, adjustedHeight);
+                         x += barWidth + 1;
+                     }
+                     
+                     // 실시간 업데이트
+                     requestAnimationFrame(drawVoiceWaveform);
+                 }
+                 
+                 // 파형 그리기 시작
+                 drawVoiceWaveform();
+                 
+                 // MediaRecorder로 녹음
                  mediaRecorder = new MediaRecorder(stream);
                  
                  mediaRecorder.ondataavailable = (event) => {
@@ -1364,13 +1512,15 @@
                  };
                  
                  mediaRecorder.start();
-                 console.log('음성 녹음 시작');
+                 console.log('음성 녹음 및 파형 분석 시작');
                  
+                 // 5초 후 녹음 중지
                  setTimeout(() => {
                      mediaRecorder.stop();
                      stream.getTracks().forEach(track => track.stop());
+                     audioContext.close();
                      console.log('음성 데이터 수집 완료:', voiceData.length, '청크');
-                 }, 5000); // 5초
+                 }, 5000);
              })
              .catch(error => {
                  console.error('마이크 접근 실패:', error);
