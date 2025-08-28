@@ -434,7 +434,7 @@
     // 백엔드 연결 상태 확인
     async function checkBackendConnection() {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/health', {
+            const response = await fetch('http://localhost:8001/api/v1/health', {
                 method: 'GET',
                 timeout: 5000
             });
@@ -620,7 +620,7 @@
             formData.append('rppg_data', JSON.stringify(rppgData));
             formData.append('voice_data', JSON.stringify(voiceData));
             
-            const response = await fetch('http://localhost:8000/api/v1/analyze', {
+            const response = await fetch('http://localhost:8001/api/v1/analyze', {
                 method: 'POST',
                 body: formData
             });
