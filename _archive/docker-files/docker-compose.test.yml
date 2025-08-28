@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend-test:
+    image: eno-backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=test
+    networks:
+      - test-network
+
+  frontend-test:
+    image: eno-frontend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend-test
+    networks:
+      - test-network
+
+  functions-test:
+    image: eno-functions:latest
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=test
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

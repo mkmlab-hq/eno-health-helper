@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline';
+import { FeedbackData } from '@/lib/feedbackService';
 
-interface FeedbackData {
+interface UserFeedbackFormData {
   rating: number;
   comment: string;
   category: 'general' | 'rppg' | 'voice' | 'music' | 'ui';
@@ -12,7 +13,7 @@ interface FeedbackData {
 }
 
 interface UserFeedbackProps {
-  onSubmit: (feedback: FeedbackData) => void;
+  onSubmit: (feedback: UserFeedbackFormData) => void;
   onClose: () => void;
 }
 
@@ -28,7 +29,7 @@ const UserFeedback: React.FC<UserFeedbackProps> = ({ onSubmit, onClose }) => {
 
     setIsSubmitting(true);
     
-    const feedback: FeedbackData = {
+    const feedback: UserFeedbackFormData = {
       rating,
       comment,
       category,

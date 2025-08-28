@@ -2,17 +2,17 @@
 
 import React, { useState } from 'react';
 import { Play, Pause, Download, Music, Heart, Brain, Sparkles, Eye, Code } from 'lucide-react';
-import { EmotionData, SunoAIClient, MusicGenerationResponse } from '../lib/sunoAI';
+import { EmotionData, SunoAIClient, SunoAIResponse } from '../lib/sunoAI';
 import { SunoAIPromptMapper } from '../lib/sunoAIPrompts';
 
 interface MusicGeneratorProps {
   emotionData: EmotionData;
-  onMusicGenerated?: (music: MusicGenerationResponse) => void;
+  onMusicGenerated?: (music: SunoAIResponse) => void;
 }
 
 export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [musicData, setMusicData] = useState<MusicGenerationResponse | null>(null);
+  const [musicData, setMusicData] = useState<SunoAIResponse | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,14 +64,19 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
         // 실제 Suno AI API 호출 (3단계에서)
         if (i === 2) {
           try {
-            const result = await sunoClient.generatePersonalizedMusic(emotionData);
+            const result = await sunoClient.generateMusic({
+              prompt: `Create music for emotion: ${emotionData.emotion} with intensity ${emotionData.intensity}`,
+              duration: 180,
+              style: 'emotional',
+              mood: emotionData.emotion
+            });
             
-            if (result.success && result.musicUrl) {
+            if (result.status === 'completed' && result.audioUrl) {
               setMusicData(result);
               onMusicGenerated?.(result);
               
               // 오디오 객체 생성
-              const newAudio = new Audio(result.musicUrl);
+              const newAudio = new Audio(result.audioUrl);
               newAudio.preload = 'metadata';
               setAudio(newAudio);
             } else {
@@ -114,10 +119,10 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
    * 음악 다운로드
    */
   const downloadMusic = async () => {
-    if (!musicData?.musicUrl) return;
+    if (!musicData?.audioUrl) return;
 
     try {
-      const response = await fetch(musicData.musicUrl);
+      const response = await fetch(musicData.audioUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       
@@ -138,7 +143,20 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
    * 감정 상태에 따른 음악 스타일 설명
    */
   const getMusicStyleDescription = () => {
-    return promptMapper.getEmotionKoreanDescription(emotionData.emotion);
+    // 감정에 따른 한국어 설명
+    const emotionDescriptions: Record<string, string> = {
+      'calm': '차분하고 평온한 분위기',
+      'relaxed': '편안하고 여유로운 분위기',
+      'focused': '집중력이 높은 분위기',
+      'energetic': '활기차고 역동적인 분위기',
+      'excited': '흥미진진하고 설레는 분위기',
+      'stressed': '긴장되고 압박감 있는 분위기',
+      'anxious': '불안하고 걱정스러운 분위기',
+      'happy': '기쁘고 즐거운 분위기',
+      'sad': '슬프고 우울한 분위기',
+      'angry': '화나고 격렬한 분위기'
+    };
+    return emotionDescriptions[emotionData.emotion] || '감정 기반 음악';
   };
 
   /**
@@ -240,8 +258,8 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
               <Eye className="w-4 h-4 mr-2" />
               Suno AI 프롬프트
             </h4>
-            <p className="text-gray-300 text-sm leading-relaxed font-mono">
-                              {promptMapper.generateOptimizedPrompt(emotionData.emotion, emotionData.intensity)}
+                        <p className="text-gray-300 text-sm leading-relaxed font-mono">
+              {`Create ${emotionData.emotion} music with intensity ${emotionData.intensity}, style: emotional, duration: 3 minutes`}
             </p>
           </div>
         )}
@@ -321,19 +339,19 @@ export default function MusicGenerator({ emotionData, onMusicGenerated }: MusicG
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-400">스타일:</span>
-                <span className="text-white ml-2">{musicData.style}</span>
+                <span className="text-white ml-2">{musicData.metadata?.style || '감정 기반'}</span>
               </div>
               <div>
-                <span className="text-gray-400">BPM:</span>
-                <span className="text-white ml-2">{musicData.bpm}</span>
+                <span className="text-gray-400">감정:</span>
+                <span className="text-white ml-2">{musicData.metadata?.mood || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-gray-400">길이:</span>
-                <span className="text-white ml-2">{musicData.duration}초</span>
+                <span className="text-white ml-2">{musicData.metadata?.duration || 180}초</span>
               </div>
               <div>
                 <span className="text-gray-400">생성 상태:</span>
-                <span className="text-white ml-2">{musicData.generationStatus}</span>
+                <span className="text-white ml-2">{musicData.status}</span>
               </div>
             </div>
           </div>

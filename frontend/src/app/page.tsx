@@ -5,22 +5,28 @@ import Link from 'next/link';
 import UserFeedback from '@/components/UserFeedback';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import AccessibilityReportComponent from '@/components/AccessibilityReport';
-import FeedbackService, { FeedbackData } from '@/lib/feedbackService';
+import { feedbackService, FeedbackData } from '@/lib/feedbackService';
 
 export default function Home() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
-  const feedbackService = FeedbackService.getInstance();
+  // feedbackService는 이미 import된 싱글톤 인스턴스
 
-  const handleFeedbackSubmit = async (feedback: FeedbackData) => {
+  const handleFeedbackSubmit = async (feedback: any) => {
     try {
-      const response = await feedbackService.submitFeedback(feedback);
-      if (response.success) {
-        alert('피드백이 성공적으로 제출되었습니다!');
-      } else {
-        alert('피드백 제출에 실패했습니다. 다시 시도해주세요.');
-      }
+      // UserFeedback에서 받은 데이터를 FeedbackService 형식으로 변환
+      const feedbackData = {
+        userId: 'anonymous',
+        type: 'general' as const,
+        title: `${feedback.category} 피드백`,
+        description: feedback.comment,
+        priority: 'medium' as const,
+        status: 'open' as const
+      };
+      
+      await feedbackService.createFeedback(feedbackData);
+      alert('피드백이 성공적으로 제출되었습니다!');
     } catch (error) {
       console.error('피드백 제출 오류:', error);
       alert('피드백 제출 중 오류가 발생했습니다.');
@@ -82,12 +88,12 @@ export default function Home() {
               return (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p>총 피드백: {stats.totalCount}개</p>
-                    <p>평균 평점: {stats.averageRating}/5</p>
+                    <p>총 피드백: {stats.total}개</p>
+                    <p>해결된 이슈: {stats.resolved}개</p>
                   </div>
                   <div>
-                    <p>최근 피드백: {stats.recentFeedback.length}개</p>
-                    <p>카테고리: {Object.keys(stats.categoryBreakdown).length}개</p>
+                    <p>열린 이슈: {stats.open}개</p>
+                    <p>전체 이슈: {stats.total}개</p>
                   </div>
                 </div>
               );

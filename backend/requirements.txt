@@ -36,7 +36,7 @@ alembic==1.12.1
 
 
 # 백그라운드 작업 및 캐싱
-redis==5.0.1
+redis>=4.2.0,<5.0.0
 celery==5.3.4
 fastapi-cache2[redis]==0.2.1
 

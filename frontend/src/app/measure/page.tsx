@@ -219,11 +219,7 @@ export default function MeasurePage() {
           console.log('음성 녹음 시작...');
           
           // 음성 녹음 시작
-          const recordingStarted = await voiceAnalyzerRef.current.startRecording();
-          
-          if (!recordingStarted) {
-            throw new Error('음성 녹음 시작 실패');
-          }
+          await voiceAnalyzerRef.current.startRecording();
           
           // 음성 진행률 업데이트
           const voiceProgressInterval = setInterval(() => {

@@ -15,9 +15,9 @@ const nextConfig = {
   },
   
   // 정적 내보내기 시 동적 라우트 비활성화
-  experimental: {
-    appDir: true,
-  },
+  // experimental: {
+  //   appDir: true, // Next.js 13+ 에서는 기본값이므로 제거
+  // },
   
   // 빌드 시 경고 무시
   onDemandEntries: {
