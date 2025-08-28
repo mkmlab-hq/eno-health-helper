@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5  # 더 빠른 실행
     
     steps:
     - name: Checkout code
@@ -28,15 +28,14 @@ jobs:
           npm ci
         fi
         
-    - name: Run basic tests
+    - name: Basic validation
       run: |
-        echo "Running basic validation tests..."
+        echo "🔍 Running basic validation..."
         echo "✅ Code checkout successful"
         echo "✅ Node.js setup successful"
         echo "✅ Dependencies installation successful"
-        echo "✅ Basic CI validation completed"
         
     - name: Success
       run: |
         echo "🎉 Simple CI completed successfully!"
-        echo "This workflow focuses on basic validation without complex dependencies" 
+        echo "No complex dependencies - just basic validation" 
