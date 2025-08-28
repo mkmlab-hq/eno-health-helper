@@ -4,7 +4,8 @@ uvicorn[standard]==0.24.0
 
 # 핵심 과학 라이브러리 (Windows 호환)
 numpy>=1.26.0
-scipy==1.11.4
+scipy>=1.11.4; sys_platform != "win32"
+scipy>=1.11.4; sys_platform == "win32" --only-binary=scipy
 opencv-python==4.8.1.78
 
 # MediaPipe Face Mesh (얼굴 검출)

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { RPPGAnalyzer, RPPGResult } from '@/lib/rppgAnalyzer';
 import { VoiceAnalyzer, VoiceAnalysisResult } from '@/lib/voiceAnalyzer';
 import { saveHealthData } from '@/lib/firebase';
+import AIChat from '@/components/AIChat';
+import AudioWaveform from '@/components/AudioWaveform';
+import HealingMusic from '@/components/HealingMusic';
 
 export default function MeasurePage() {
   const router = useRouter();
@@ -14,11 +17,15 @@ export default function MeasurePage() {
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<boolean>(false);
   const [microphonePermission, setMicrophonePermission] = useState<boolean>(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showHealingMusic, setShowHealingMusic] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [audioWaveformData, setAudioWaveformData] = useState<Float32Array | null>(null);
   
-  // 실제값 모드 관련
-  const [useRealValue, setUseRealValue] = useState<boolean>(false);
-  const [analysisMode, setAnalysisMode] = useState<string>('시뮬레이션 모드');
-  const [realValueAvailable, setRealValueAvailable] = useState<boolean>(false);
+  // 실제값 모드 관련 (향후 확장용)
+  // const [useRealValue, setUseRealValue] = useState<boolean>(false);
+  // const [analysisMode, setAnalysisMode] = useState<string>('시뮬레이션 모드');
+  // const [realValueAvailable, setRealValueAvailable] = useState<boolean>(false);
   
   // 카메라 관련
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -219,6 +226,7 @@ export default function MeasurePage() {
           console.log('음성 녹음 시작...');
           
           // 음성 녹음 시작
+          setIsVoiceRecording(true);
           await voiceAnalyzerRef.current.startRecording();
           
           // 음성 진행률 업데이트
@@ -238,6 +246,7 @@ export default function MeasurePage() {
             if (voiceAnalyzerRef.current) {
               voiceAnalyzerRef.current.stopRecording();
             }
+            setIsVoiceRecording(false);
             setVoiceProgress(100);
             setCurrentStep('complete');
             console.log('측정 완료');
@@ -291,6 +300,8 @@ export default function MeasurePage() {
     setVoiceProgress(0);
     setRppgResult(null);
     setVoiceResult(null);
+    setIsVoiceRecording(false);
+    setAudioWaveformData(null);
     
     // 스트림 정리
     if (streamRef.current) {
@@ -328,6 +339,47 @@ export default function MeasurePage() {
       console.error('Error in measure page:', error);
     }
   }, [error]);
+
+  // AI 채팅용 건강 데이터 구성
+  const getHealthDataForAI = () => {
+    const healthData: any = {};
+    
+    if (rppgResult) {
+      healthData.rppg = {
+        heartRate: rppgResult.heartRate,
+        stressIndex: rppgResult.stressIndex,
+        confidence: rppgResult.confidence,
+        quality: rppgResult.quality
+      };
+    }
+    
+    if (voiceResult) {
+      healthData.voice = {
+        pitch: voiceResult.pitch,
+        clarity: voiceResult.clarity,
+        emotion: voiceResult.emotion,
+        quality: voiceResult.quality
+      };
+    }
+    
+    // 시뮬레이션 융합 데이터 (실제 구현 시 실제 데이터로 교체)
+    healthData.fusion = {
+      digitalTemperament: "태양인",
+      overallScore: 82.1,
+      recommendations: [
+        "현재 스트레스 수준이 높습니다",
+        "충분한 휴식이 필요합니다",
+        "규칙적인 운동을 권장합니다"
+      ]
+    };
+    
+    return healthData;
+  };
+
+  // 오디오 파형 데이터 업데이트 핸들러
+  const handleWaveformUpdate = useCallback((data: Float32Array) => {
+    setAudioWaveformData(data);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
@@ -429,6 +481,17 @@ export default function MeasurePage() {
           {currentStep === 'voice' && (
             <div>
               <h2 className="text-xl font-semibold text-white mb-4">음성 녹음 중...</h2>
+              
+              {/* 실시간 오디오 파형 시각화 */}
+              <div className="mb-6">
+                <AudioWaveform
+                  isRecording={isVoiceRecording}
+                  onWaveformUpdate={handleWaveformUpdate}
+                  width={350}
+                  height={150}
+                />
+              </div>
+              
               <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 voice-recording">
                 <span className="text-4xl">🎤</span>
               </div>
@@ -487,6 +550,18 @@ export default function MeasurePage() {
               
               <div className="button-group">
                 <button
+                  onClick={() => setShowAIChat(true)}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                >
+                  🤖 AI 건강 상담
+                </button>
+                <button
+                  onClick={() => setShowHealingMusic(true)}
+                  className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-2 rounded hover:from-green-600 hover:to-blue-600 transition-all duration-300"
+                >
+                  🎵 치유 음악
+                </button>
+                <button
                   onClick={saveResults}
                   className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
                 >
@@ -520,6 +595,23 @@ export default function MeasurePage() {
           )}
         </div>
       </div>
+
+      {/* AI Chat Modal */}
+      {showAIChat && (
+        <AIChat
+          healthData={getHealthDataForAI()}
+          maxQuestions={10}
+          onClose={() => setShowAIChat(false)}
+        />
+      )}
+
+      {/* Healing Music Modal */}
+      {showHealingMusic && (
+        <HealingMusic
+          healthData={getHealthDataForAI()}
+          onClose={() => setShowHealingMusic(false)}
+        />
+      )}
     </div>
   );
 }

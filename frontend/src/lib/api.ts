@@ -8,12 +8,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-eno
 export interface AnalysisRequest {
   user_id: string;
   analysis_type: 'rppg' | 'voice' | 'fusion' | 'health';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface AnalysisResponse {
   success: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   error?: string;
   timestamp: string;
   analysis_type: string;
@@ -22,9 +22,9 @@ export interface AnalysisResponse {
 export interface HealthData {
   user_id: string;
   timestamp: string;
-  rppg_data?: Record<string, any>;
-  voice_data?: Record<string, any>;
-  emotion_data?: Record<string, any>;
+  rppg_data?: Record<string, unknown>;
+  voice_data?: Record<string, unknown>;
+  emotion_data?: Record<string, unknown>;
 }
 
 class APIClient {
@@ -82,7 +82,7 @@ class APIClient {
   /**
    * rPPG 분석
    */
-  async analyzeRPPG(userId: string, rppgData: Record<string, any>): Promise<AnalysisResponse> {
+  async analyzeRPPG(userId: string, rppgData: Record<string, unknown>): Promise<AnalysisResponse> {
     const request: AnalysisRequest = {
       user_id: userId,
       analysis_type: 'rppg',
@@ -98,7 +98,7 @@ class APIClient {
   /**
    * 음성 분석
    */
-  async analyzeVoice(userId: string, voiceData: Record<string, any>): Promise<AnalysisResponse> {
+  async analyzeVoice(userId: string, voiceData: Record<string, unknown>): Promise<AnalysisResponse> {
     const request: AnalysisRequest = {
       user_id: userId,
       analysis_type: 'voice',
@@ -114,7 +114,7 @@ class APIClient {
   /**
    * 융합 분석
    */
-  async analyzeFusion(userId: string, rppgData: Record<string, any>, voiceData: Record<string, any>): Promise<AnalysisResponse> {
+  async analyzeFusion(userId: string, rppgData: Record<string, unknown>, voiceData: Record<string, unknown>): Promise<AnalysisResponse> {
     const request: AnalysisRequest = {
       user_id: userId,
       analysis_type: 'fusion',
@@ -137,7 +137,7 @@ class APIClient {
     const request: AnalysisRequest = {
       user_id: userId,
       analysis_type: 'health',
-      data: healthData
+      data: healthData as unknown as Record<string, unknown>
     };
 
     return this.request('/api/analyze/health', {

@@ -1,128 +1,79 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import UserFeedback from '@/components/UserFeedback';
-import PerformanceDashboard from '@/components/PerformanceDashboard';
-import AccessibilityReportComponent from '@/components/AccessibilityReport';
-import { feedbackService, FeedbackData } from '@/lib/feedbackService';
 
 export default function Home() {
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [showPerformance, setShowPerformance] = useState(false);
-  const [showAccessibility, setShowAccessibility] = useState(false);
-  // feedbackService는 이미 import된 싱글톤 인스턴스
-
-  const handleFeedbackSubmit = async (feedback: any) => {
-    try {
-      // UserFeedback에서 받은 데이터를 FeedbackService 형식으로 변환
-      const feedbackData = {
-        userId: 'anonymous',
-        type: 'general' as const,
-        title: `${feedback.category} 피드백`,
-        description: feedback.comment,
-        priority: 'medium' as const,
-        status: 'open' as const
-      };
-      
-      await feedbackService.createFeedback(feedbackData);
-      alert('피드백이 성공적으로 제출되었습니다!');
-    } catch (error) {
-      console.error('피드백 제출 오류:', error);
-      alert('피드백 제출 중 오류가 발생했습니다.');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-          <div className="w-12 h-12 text-white">🩺</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
+      <div className="text-center max-w-md w-full">
+        {/* 로고 및 브랜딩 */}
+        <div className="w-24 h-24 bg-gradient-to-r from-eno-500 to-eno-400 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+          <div className="w-12 h-12 text-white neon-glow">🩺</div>
         </div>
-        <h2 className="text-2xl font-bold text-white mb-4">엔오건강도우미</h2>
-        <p className="text-gray-300 mb-6">건강 측정 서비스에 오신 것을 환영합니다</p>
         
-        <div className="space-y-4">
-          <Link
-            href="/test"
-            className="block bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            카메라/마이크 테스트
-          </Link>
-          
+        <h1 className="text-4xl font-bold text-white mb-4 neon-text">
+          엔오건강도우미
+        </h1>
+        
+        <p className="text-gray-300 mb-12 text-lg">
+          AI 기반 초개인화 건강 통찰 서비스
+        </p>
+        
+        {/* 메인 액션 버튼들 */}
+        <div className="space-y-6 mb-12">
+          {/* 건강 측정 시작 - 주요 액션 */}
           <Link
             href="/measure"
-            className="block bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors"
+            className="block w-full bg-gradient-to-r from-eno-600 to-eno-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-eno-500/25 hover:-translate-y-1"
           >
-            건강 측정 시작
+            🚀 건강 측정 시작하기
           </Link>
-
-          <button
-            onClick={() => setShowFeedback(true)}
-            className="block bg-purple-500 text-white px-8 py-3 rounded-lg hover:bg-purple-600 transition-colors mx-auto"
+          
+          {/* 카메라/마이크 테스트 */}
+          <Link
+            href="/test"
+            className="block w-full bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 border border-gray-600 hover:border-eno-500"
           >
-            💬 사용자 피드백
-          </button>
-
-          <button
-            onClick={() => setShowPerformance(true)}
-            className="block bg-indigo-500 text-white px-8 py-3 rounded-lg hover:bg-indigo-600 transition-colors mx-auto"
-          >
-            📊 성능 모니터링
-          </button>
-
-          <button
-            onClick={() => setShowAccessibility(true)}
-            className="block bg-teal-500 text-white px-8 py-3 rounded-lg hover:bg-teal-600 transition-colors mx-auto"
-          >
-            ♿ 접근성 테스트
-          </button>
+            📱 카메라/마이크 테스트
+          </Link>
         </div>
-
-        {/* 피드백 통계 표시 */}
-        <div className="mt-8 p-4 bg-white bg-opacity-10 rounded-lg">
-          <h3 className="text-white text-lg font-semibold mb-2">피드백 통계</h3>
-          <div className="text-gray-300 text-sm">
-            {(() => {
-              const stats = feedbackService.getFeedbackStats();
-              return (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p>총 피드백: {stats.total}개</p>
-                    <p>해결된 이슈: {stats.resolved}개</p>
-                  </div>
-                  <div>
-                    <p>열린 이슈: {stats.open}개</p>
-                    <p>전체 이슈: {stats.total}개</p>
-                  </div>
-                </div>
-              );
-            })()}
+        
+        {/* 서비스 특징 */}
+        <div className="glass-card rounded-2xl p-6 mb-8">
+          <h3 className="text-white font-semibold text-lg mb-4 neon-text">
+            ✨ 서비스 특징
+          </h3>
+          <div className="space-y-3 text-sm text-gray-300">
+            <div className="flex items-center space-x-3">
+              <span className="text-eno-400">🎯</span>
+              <span>AI 기반 건강 분석</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-eno-400">🎵</span>
+              <span>개인 맞춤형 치유 음악</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-eno-400">💬</span>
+              <span>AI 건강 상담</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-eno-400">📊</span>
+              <span>실시간 건강 모니터링</span>
+            </div>
           </div>
         </div>
+        
+        {/* 시작 안내 */}
+        <div className="text-center">
+          <p className="text-gray-400 text-sm mb-2">
+            간단한 카메라/마이크 테스트 후
+          </p>
+          <p className="text-eno-400 font-medium">
+            건강 측정을 시작하세요! 🎉
+          </p>
+        </div>
       </div>
-
-      {/* 피드백 모달 */}
-      {showFeedback && (
-        <UserFeedback
-          onSubmit={handleFeedbackSubmit}
-          onClose={() => setShowFeedback(false)}
-        />
-      )}
-
-      {/* 성능 모니터링 대시보드 */}
-      {showPerformance && (
-        <PerformanceDashboard
-          onClose={() => setShowPerformance(false)}
-        />
-      )}
-
-      {/* 접근성 테스트 결과 */}
-      {showAccessibility && (
-        <AccessibilityReportComponent
-          onClose={() => setShowAccessibility(false)}
-        />
-      )}
     </div>
   );
 } 
