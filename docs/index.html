@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -732,6 +732,10 @@
     // --- 측정 프로세스 함수들 ---
     function startFaceMeasurement() {
         showScreen('face');
+        
+        // 실제 카메라 초기화 및 측정 시작
+        startMeasurementWithCamera();
+        
         let timeLeft = FACE_DURATION;
         faceTimerText.textContent = timeLeft;
         setProgress(0);
@@ -1243,6 +1247,151 @@
              }
          }
      }
+
+     // 실제 카메라 기능 추가
+     let mediaStream = null;
+     let mediaRecorder = null;
+     let rppgData = [];
+     let voiceData = [];
+     
+     // 카메라 초기화
+     async function initializeCamera() {
+         try {
+             console.log('카메라 초기화 시작...');
+             
+             mediaStream = await navigator.mediaDevices.getUserMedia({
+                 video: {
+                     width: { ideal: 640 },
+                     height: { ideal: 480 },
+                     facingMode: 'user'
+                 },
+                 audio: false
+             });
+             
+             console.log('카메라 스트림 획득 성공:', mediaStream);
+             
+             // 카메라 피드가 있다면 연결
+             const cameraFeed = document.getElementById('camera-feed');
+             if (cameraFeed) {
+                 cameraFeed.srcObject = mediaStream;
+                 console.log('카메라 피드 연결 완료');
+             }
+             
+             return true;
+         } catch (error) {
+             console.error('카메라 접근 실패:', error);
+             
+             if (error.name === 'NotAllowedError') {
+                 showNotification('카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.', 'error');
+             } else if (error.name === 'NotFoundError') {
+                 showNotification('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.', 'error');
+             } else {
+                 showNotification(`카메라 접근 중 오류가 발생했습니다: ${error.message}`, 'error');
+             }
+             
+             return false;
+         }
+     }
+     
+     // RPPG 데이터 수집
+     function startRPPGDataCollection() {
+         rppgData = [];
+         const canvas = document.createElement('canvas');
+         const ctx = canvas.getContext('2d');
+         canvas.width = 640;
+         canvas.height = 480;
+         
+         const captureFrame = () => {
+             if (mediaStream && mediaStream.active) {
+                 try {
+                     const cameraFeed = document.getElementById('camera-feed');
+                     if (cameraFeed && cameraFeed.videoWidth > 0) {
+                         ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+                         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                         
+                         // 녹색 채널 추출 (RPPG에 가장 민감)
+                         const greenChannel = [];
+                         for (let i = 0; i < imageData.data.length; i += 4) {
+                             greenChannel.push(imageData.data[i + 1]); // G 채널
+                         }
+                         
+                         const avgGreen = greenChannel.reduce((a, b) => a + b, 0) / greenChannel.length;
+                         rppgData.push({
+                             timestamp: Date.now(),
+                             greenValue: avgGreen,
+                             frameIndex: rppgData.length
+                         });
+                     }
+                 } catch (error) {
+                     console.error('프레임 캡처 오류:', error);
+                 }
+             }
+         };
+         
+         // 30초 동안 30fps로 프레임 캡처
+         const interval = setInterval(captureFrame, 1000 / 30);
+         
+         setTimeout(() => {
+             clearInterval(interval);
+             console.log('RPPG 데이터 수집 완료:', rppgData.length, '프레임');
+         }, 30000); // 30초
+     }
+     
+     // 음성 데이터 수집
+     function startVoiceDataCollection() {
+         voiceData = [];
+         
+         navigator.mediaDevices.getUserMedia({ audio: true })
+             .then(stream => {
+                 mediaRecorder = new MediaRecorder(stream);
+                 
+                 mediaRecorder.ondataavailable = (event) => {
+                     if (event.data.size > 0) {
+                         voiceData.push(event.data);
+                     }
+                 };
+                 
+                 mediaRecorder.start();
+                 console.log('음성 녹음 시작');
+                 
+                 setTimeout(() => {
+                     mediaRecorder.stop();
+                     stream.getTracks().forEach(track => track.stop());
+                     console.log('음성 데이터 수집 완료:', voiceData.length, '청크');
+                 }, 5000); // 5초
+             })
+             .catch(error => {
+                 console.error('마이크 접근 실패:', error);
+                 showNotification('마이크 접근에 실패했습니다: ' + error.message, 'error');
+             });
+     }
+     
+     // 측정 시작 시 카메라 초기화
+     function startMeasurementWithCamera() {
+         console.log('카메라 측정 시작...');
+         initializeCamera().then(success => {
+             if (success) {
+                 showNotification('카메라가 성공적으로 초기화되었습니다!', 'success');
+                 startRPPGDataCollection();
+                 
+                 // 30초 후 음성 측정 시작
+                 setTimeout(() => {
+                     startVoiceDataCollection();
+                 }, 30000);
+             }
+         });
+     }
+     
+     // 카메라 정리
+     function cleanupCamera() {
+         if (mediaStream) {
+             mediaStream.getTracks().forEach(track => track.stop());
+             mediaStream = null;
+         }
+     }
+     
+     // 페이지 언로드 시 정리
+     window.addEventListener('beforeunload', cleanupCamera);
 
 </script>
 </body>
