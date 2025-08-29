@@ -137,8 +137,8 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
       const usage = await checkMusicUsageLimit(user.uid);
       setUsageLimit({
         canUse: usage.canUse,
-        remaining: usage.remainingUses,
-        dailyCount: 10 - usage.remainingUses,
+        remaining: usage.remaining,
+        dailyCount: 10 - usage.remaining,
         dailyLimit: 10
       });
     } catch (error) {

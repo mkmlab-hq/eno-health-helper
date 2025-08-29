@@ -99,6 +99,43 @@
 
 /* 새로운 디자인 시스템 */
 
+/* 글래스 버튼 스타일 */
+.glass-button {
+  background: rgba(17, 25, 40, 0.75);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-button:hover {
+  background: rgba(17, 25, 40, 0.9);
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* 네온 그림자 효과 */
+.shadow-neon-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* 폰트 클래스 */
+.font-orbitron {
+  font-family: 'Orbitron', monospace;
+}
+
+.font-noto {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+}
+
 /* 모바일 최적화 스타일 */
 @layer components {
   /* 모바일 터치 최적화 */
@@ -260,7 +297,12 @@
 @media (max-width: 768px) {
   .glass-card {
     margin: 16px;
-    padding: 20px;
+    padding: 1rem;
+  }
+
+  .glass-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
   }
 
   .camera-guideline {
