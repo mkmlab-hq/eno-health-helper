@@ -66,6 +66,65 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
   } | null>(null);
   const [isCheckingUsage, setIsCheckingUsage] = useState(true);
 
+  // 음악 다운로드 기능
+  const downloadMusic = useCallback(async (music: MusicRecommendation) => {
+    if (!music.audioUrl) {
+      alert('다운로드할 음악 파일이 없습니다.');
+      return;
+    }
+
+    try {
+      const response = await fetch(music.audioUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${music.title}_${music.artist}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      window.URL.revokeObjectURL(url);
+      alert('음악이 성공적으로 다운로드되었습니다!');
+    } catch (error) {
+      console.error('음악 다운로드 오류:', error);
+      alert('다운로드 중 오류가 발생했습니다.');
+    }
+  }, []);
+
+  // 음악 공유 기능 (카카오톡, 인스타그램 등)
+  const shareMusic = useCallback(async (music: MusicRecommendation) => {
+    if (navigator.share && music.audioUrl) {
+      try {
+        await navigator.share({
+          title: `나만의 AI 맞춤 음악: ${music.title}`,
+          text: `${music.artist}의 ${music.title} - AI가 추천한 맞춤형 치유 음악입니다!`,
+          url: music.audioUrl
+        });
+      } catch (error) {
+        console.error('공유 오류:', error);
+        // 폴백: 링크 복사
+        copyMusicLink(music);
+      }
+    } else {
+      // 폴백: 링크 복사
+      copyMusicLink(music);
+    }
+  }, []);
+
+  // 음악 링크 복사
+  const copyMusicLink = useCallback(async (music: MusicRecommendation) => {
+    try {
+      const shareText = `🎵 나만의 AI 맞춤 음악\n${music.title} - ${music.artist}\n${music.description}\n\n건강도우미 앱에서 더 많은 맞춤 음악을 만나보세요!`;
+      await navigator.clipboard.writeText(shareText);
+      alert('음악 정보가 클립보드에 복사되었습니다!');
+    } catch (error) {
+      console.error('링크 복사 오류:', error);
+      alert('링크 복사에 실패했습니다.');
+    }
+  }, []);
+
   // 사용 횟수 제한 확인
   const checkUsageLimit = useCallback(async () => {
     if (!user?.uid) {
@@ -75,8 +134,13 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
     }
 
     try {
-      const usage = await checkMusicUsageLimit(user.uid, 3);
-      setUsageLimit(usage);
+      const usage = await checkMusicUsageLimit(user.uid);
+      setUsageLimit({
+        canUse: usage.canUse,
+        remaining: usage.remainingUses,
+        dailyCount: 10 - usage.remainingUses,
+        dailyLimit: 10
+      });
     } catch (error) {
       console.error('사용량 제한 확인 오류:', error);
       setUsageLimit({ canUse: false, remaining: 0, dailyCount: 0, dailyLimit: 3 });
@@ -574,6 +638,33 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
                     </Button>
                     <CardDescription className="mt-2">
                       Suno AI를 활용하여 완전히 개인화된 치유 음악을 생성합니다
+                    </CardDescription>
+                  </div>
+                )}
+
+                {/* 음악 다운로드 및 공유 버튼 */}
+                {selectedMusic.audioUrl && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={() => downloadMusic(selectedMusic)}
+                        variant="outline" 
+                        size="lg"
+                        className="w-full bg-green-600 hover:bg-green-700 border-green-500 text-white"
+                      >
+                        📥 다운로드
+                      </Button>
+                      <Button 
+                        onClick={() => shareMusic(selectedMusic)}
+                        variant="outline" 
+                        size="lg"
+                        className="w-full bg-blue-600 hover:bg-blue-700 border-blue-500 text-white"
+                      >
+                        🔗 공유하기
+                      </Button>
+                    </div>
+                    <CardDescription className="text-center">
+                      개인 맞춤 음악을 다운로드하거나 친구들과 공유해보세요!
                     </CardDescription>
                   </div>
                 )}

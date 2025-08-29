@@ -1,6 +1,9 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+// 지역 설정 (서울)
+const region = 'asia-northeast3';
+
 // Firebase Admin 초기화
 admin.initializeApp();
 
@@ -11,7 +14,7 @@ const db = admin.firestore();
  * AI 분석 요청 처리 - '최종 연결' 핵심 기능
  * 사용자 인증을 강제하고 비동기 처리
  */
-exports.requestAIAnalysis = functions.https.onCall(async (data, context) => {
+exports.requestAIAnalysis = functions.region(region).https.onCall(async (data, context) => {
   // 사용자 인증 확인 (보안 강화)
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -75,7 +78,7 @@ exports.requestAIAnalysis = functions.https.onCall(async (data, context) => {
 /**
  * AI 분석 결과 조회
  */
-exports.getAnalysisResult = functions.https.onCall(async (data, context) => {
+exports.getAnalysisResult = functions.region(region).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
       'unauthenticated', 
@@ -123,7 +126,7 @@ exports.getAnalysisResult = functions.https.onCall(async (data, context) => {
 /**
  * 사용자 피드백 제출 (AI 제품관리 시스템)
  */
-exports.submitFeedback = functions.https.onCall(async (data, context) => {
+exports.submitFeedback = functions.region(region).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
       'unauthenticated', 

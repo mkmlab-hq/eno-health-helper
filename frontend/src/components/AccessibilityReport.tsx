@@ -3,6 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { accessibilityTester, AccessibilityReport, AccessibilityIssue } from '@/lib/accessibilityTester';
 
+// 영향도 설명 함수
+const getImpactDescription = (impact: string): string => {
+  switch (impact) {
+    case 'critical': return '심각한 문제';
+    case 'serious': return '중요한 문제';
+    case 'moderate': return '보통 문제';
+    case 'minor': return '경미한 문제';
+    default: return '알 수 없음';
+  }
+};
+
 interface AccessibilityReportProps {
   onClose: () => void;
 }
@@ -110,7 +121,7 @@ const AccessibilityReportComponent: React.FC<AccessibilityReportProps> = ({ onCl
           <div className="bg-red-50 p-4 rounded-lg border border-red-200">
             <h3 className="text-sm font-medium text-red-800">에러</h3>
             <p className="text-2xl font-bold text-red-600">
-              {report.errors}
+              {report.criticalIssues}
             </p>
             <p className="text-sm text-red-600">즉시 수정 필요</p>
           </div>
@@ -118,7 +129,7 @@ const AccessibilityReportComponent: React.FC<AccessibilityReportProps> = ({ onCl
           <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
             <h3 className="text-sm font-medium text-orange-800">경고</h3>
             <p className="text-2xl font-bold text-orange-600">
-              {report.warnings}
+              {report.seriousIssues}
             </p>
             <p className="text-sm text-orange-600">우선 해결</p>
           </div>
@@ -126,7 +137,7 @@ const AccessibilityReportComponent: React.FC<AccessibilityReportProps> = ({ onCl
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
             <h3 className="text-sm font-medium text-yellow-800">정보</h3>
             <p className="text-2xl font-bold text-yellow-600">
-              {report.info}
+              {report.moderateIssues}
             </p>
             <p className="text-sm text-yellow-600">참고사항</p>
           </div>
@@ -175,7 +186,7 @@ const AccessibilityReportComponent: React.FC<AccessibilityReportProps> = ({ onCl
                       </div>
                       <p className="font-medium text-gray-900 mb-1">{issue.message}</p>
                       <p className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">
-                        {issue.element}
+                        {issue.selector || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -198,11 +209,11 @@ const AccessibilityReportComponent: React.FC<AccessibilityReportProps> = ({ onCl
               </div>
               <div>
                 <h5 className="font-medium text-gray-700">해결 방법</h5>
-                <p className="text-gray-600">{selectedIssue.recommendation}</p>
+                <p className="text-gray-600">{selectedIssue.help}</p>
               </div>
               <div>
-                <h5 className="font-medium text-gray-700">WCAG 기준</h5>
-                <p className="text-gray-600">{selectedIssue.wcagCriteria} (레벨 {selectedIssue.wcagLevel})</p>
+                <h5 className="font-medium text-gray-700">영향도</h5>
+                <p className="text-gray-600">{selectedIssue.impact} - {getImpactDescription(selectedIssue.impact)}</p>
               </div>
             </div>
           </div>

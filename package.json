@@ -9,6 +9,7 @@
     "start": "cd frontend && npm start"
   },
   "dependencies": {
+    "firebase-tools": "^14.15.1",
     "next": "^14.2.32"
   },
   "devDependencies": {

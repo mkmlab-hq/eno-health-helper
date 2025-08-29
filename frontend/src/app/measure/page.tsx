@@ -8,6 +8,8 @@ import { saveHealthData } from '@/lib/firebase';
 import AIChat from '@/components/AIChat';
 import AudioWaveform from '@/components/AudioWaveform';
 import HealingMusic from '@/components/HealingMusic';
+import HealthDashboard from '@/components/HealthDashboard';
+import HealthArtNFT from '@/components/HealthArtNFT';
 
 export default function MeasurePage() {
   const router = useRouter();
@@ -19,13 +21,10 @@ export default function MeasurePage() {
   const [microphonePermission, setMicrophonePermission] = useState<boolean>(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [showHealingMusic, setShowHealingMusic] = useState(false);
+  const [showHealthDashboard, setShowHealthDashboard] = useState(false);
+  const [showHealthArtNFT, setShowHealthArtNFT] = useState(false);
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [audioWaveformData, setAudioWaveformData] = useState<Float32Array | null>(null);
-  
-  // 실제값 모드 관련 (향후 확장용)
-  // const [useRealValue, setUseRealValue] = useState<boolean>(false);
-  // const [analysisMode, setAnalysisMode] = useState<string>('시뮬레이션 모드');
-  // const [realValueAvailable, setRealValueAvailable] = useState<boolean>(false);
   
   // 카메라 관련
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -295,13 +294,10 @@ export default function MeasurePage() {
   const resetMeasurement = useCallback(() => {
     setCurrentStep('ready');
     setError(null);
-    // setIsProcessing(false); // Removed as per edit hint
     setFaceProgress(0);
     setVoiceProgress(0);
     setRppgResult(null);
     setVoiceResult(null);
-    setIsVoiceRecording(false);
-    setAudioWaveformData(null);
     
     // 스트림 정리
     if (streamRef.current) {
@@ -315,33 +311,17 @@ export default function MeasurePage() {
     }
     
     if (voiceAnalyzerRef.current) {
-      voiceAnalyzerRef.current.dispose();
+      voiceAnalyzerRef.current.stopRecording();
     }
   }, []);
 
-  // 컴포넌트 마운트 시 권한 확인
-  useEffect(() => {
-    checkPermissions();
-  }, [checkPermissions]);
-
-  // 컴포넌트 언마운트 시 정리
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
+  // 오디오 파형 업데이트
+  const handleWaveformUpdate = useCallback((data: Float32Array) => {
+    setAudioWaveformData(data);
   }, []);
 
-  // 에러 발생 시 처리
-  useEffect(() => {
-    if (error) {
-      console.error('Error in measure page:', error);
-    }
-  }, [error]);
-
-  // AI 채팅용 건강 데이터 구성
-  const getHealthDataForAI = () => {
+  // AI 분석용 건강 데이터
+  const getHealthDataForAI = useCallback(() => {
     const healthData: any = {};
     
     if (rppgResult) {
@@ -362,37 +342,63 @@ export default function MeasurePage() {
       };
     }
     
-    // 시뮬레이션 융합 데이터 (실제 구현 시 실제 데이터로 교체)
+    // 실제 측정 데이터 기반 융합 정보
     healthData.fusion = {
-      digitalTemperament: "태양인",
-      overallScore: 82.1,
+      digitalTemperament: "실제 측정 기반",
+      overallScore: rppgResult && voiceResult ? 
+        Math.round((rppgResult.confidence + voiceResult.confidence) * 50) : 0,
       recommendations: [
-        "현재 스트레스 수준이 높습니다",
-        "충분한 휴식이 필요합니다",
-        "규칙적인 운동을 권장합니다"
+        rppgResult && rppgResult.stressIndex > 0.7 ? "현재 스트레스 수준이 높습니다" : "스트레스 수준이 양호합니다",
+        voiceResult && voiceResult.clarity < 0.6 ? "음성 명확도 개선이 필요합니다" : "음성 상태가 양호합니다",
+        "규칙적인 건강 측정을 권장합니다"
       ]
     };
     
+    healthData.timestamp = new Date().toISOString();
+    healthData.device = navigator.userAgent;
+    
     return healthData;
-  };
+  }, [rppgResult, voiceResult]);
 
-  // 오디오 파형 데이터 업데이트 핸들러
-  const handleWaveformUpdate = useCallback((data: Float32Array) => {
-    setAudioWaveformData(data);
+  // 컴포넌트 마운트 시 권한 확인
+  useEffect(() => {
+    checkPermissions();
+  }, [checkPermissions]);
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (rppgAnalyzerRef.current) {
+        rppgAnalyzerRef.current.stopAnalysis();
+      }
+      if (voiceAnalyzerRef.current) {
+        voiceAnalyzerRef.current.stopRecording();
+      }
+    };
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto">
-        <div className="glass-card rounded-2xl p-6 text-center">
-          
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white mb-2">건강 측정</h1>
-            <p className="text-gray-300">카메라와 마이크를 통해 건강 상태를 측정합니다</p>
-            
-            {/* 권한 상태 표시 */}
-            <div className="mt-4 space-y-2">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* 헤더 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            건강 측정
+          </h1>
+          <p className="text-gray-300">
+            카메라와 마이크를 사용하여 건강 상태를 측정합니다
+          </p>
+        </div>
+
+        {/* 메인 측정 영역 */}
+        <div className="max-w-4xl mx-auto">
+          {/* 권한 상태 표시 */}
+          <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-cyan-300">권한 상태</h3>
+            <div className="space-y-2">
               <div className={`permission-status ${cameraPermission ? 'permission-granted' : 'permission-pending'}`}>
                 <span>{cameraPermission ? '✅' : '⏳'}</span>
                 <span>카메라 권한: {cameraPermission ? '허용됨' : '대기 중'}</span>
@@ -450,30 +456,55 @@ export default function MeasurePage() {
             </div>
           )}
 
-          {/* Face Scan Step */}
+          {/* Face Scan Step - 개선된 UI */}
           {currentStep === 'face' && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4">얼굴 스캔 중...</h2>
-              <div className="relative mb-4">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-6">얼굴 스캔 중...</h2>
+              
+              {/* 확대된 카메라 화면 */}
+              <div className="relative mb-6 mx-auto" style={{ width: '90vw', maxWidth: '500px', height: '70vh', maxHeight: '600px' }}>
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-48 bg-black rounded-lg"
+                  className="w-full h-full bg-black rounded-2xl object-cover"
                 />
-                <div className="camera-guideline"></div>
+                
+                {/* 스캔 라인 애니메이션 */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="scan-line"></div>
+                </div>
+                
+                {/* 얼굴 가이드라인 */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="face-outline"></div>
+                </div>
+                
+                {/* 진행률 표시 */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-black/70 rounded-full p-3">
+                    <div className="text-white font-bold text-lg">{Math.round(faceProgress)}%</div>
+                  </div>
+                </div>
               </div>
-              <div className="mb-4">
-                <div className="progress-bar">
+              
+              {/* 개선된 진행률 바 */}
+              <div className="mb-6 max-w-md mx-auto">
+                <div className="progress-bar bg-gray-700 rounded-full h-3 overflow-hidden">
                   <div 
-                    className="progress-fill bg-blue-500"
+                    className="progress-fill bg-gradient-to-r from-blue-500 to-cyan-500 h-full transition-all duration-300 rounded-full"
                     style={{ width: `${faceProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-sm text-gray-300 mt-2">{Math.round(faceProgress)}% 완료</p>
+                <p className="text-sm text-gray-300 mt-2">측정 진행률</p>
               </div>
-              <p className="text-gray-300">카메라에 얼굴을 비추세요. 30초 동안 측정합니다.</p>
+              
+              {/* 사용자 안내 */}
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-blue-300 font-medium">카메라에 얼굴을 비추세요</p>
+                <p className="text-blue-200 text-sm mt-1">30초 동안 측정합니다</p>
+              </div>
             </div>
           )}
 
@@ -504,7 +535,7 @@ export default function MeasurePage() {
                 </div>
                 <p className="text-sm text-gray-300 mt-2">{Math.round(voiceProgress)}% 완료</p>
               </div>
-              <p className="text-gray-300">5초 동안 &ldquo;아~&rdquo; 발음을 해주세요.</p>
+              <p className="text-gray-300">5초 동안 "아~" 발음을 해주세요.</p>
             </div>
           )}
 
@@ -562,6 +593,18 @@ export default function MeasurePage() {
                   🎵 치유 음악
                 </button>
                 <button
+                  onClick={() => setShowHealthDashboard(true)}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-2 rounded hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+                >
+                  📊 건강 리포트
+                </button>
+                <button
+                  onClick={() => setShowHealthArtNFT(true)}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                >
+                  🎨 NFT 아트
+                </button>
+                <button
                   onClick={saveResults}
                   className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
                 >
@@ -610,6 +653,21 @@ export default function MeasurePage() {
         <HealingMusic
           healthData={getHealthDataForAI()}
           onClose={() => setShowHealingMusic(false)}
+        />
+      )}
+
+      {/* Health Dashboard Modal */}
+      {showHealthDashboard && (
+        <HealthDashboard
+          onClose={() => setShowHealthDashboard(false)}
+        />
+      )}
+
+      {/* Health Art NFT Modal */}
+      {showHealthArtNFT && (
+        <HealthArtNFT
+          healthData={getHealthDataForAI()}
+          onClose={() => setShowHealthArtNFT(false)}
         />
       )}
     </div>
