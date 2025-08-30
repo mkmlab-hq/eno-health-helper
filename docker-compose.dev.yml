@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # 백엔드 서비스 (Python Flask)
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=main.py
+      - PYTHONPATH=/app
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+  # 프론트엔드 서비스 (Next.js)
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_APP_NAME=Eno Health Helper
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+  # Firebase Functions 서비스
+  functions:
+    build: 
+      context: ./functions
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=development
+      - PORT=5001
+      - DEBUG=true
+    volumes:
+      - ./functions:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+networks:
+  eno-network:
+    driver: bridge

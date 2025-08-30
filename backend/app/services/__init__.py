@@ -9,13 +9,13 @@ MKM Lab eno-health-helper 통합 서비스 패키지
 """
 
 from .fusion_analyzer import AdvancedFusionAnalyzer
-from .enhanced_rppg_analyzer import EnhancedRPPGAnalyzer
+from .mkm_core_ai_integration import MKMCoreAIIntegration
 from .voice_analyzer import VoiceAnalyzer
 from .health_analyzer import HealthAnalyzer
 
 __all__ = [
     'AdvancedFusionAnalyzer',
-    'EnhancedRPPGAnalyzer', 
+    'MKMCoreAIIntegration', 
     'VoiceAnalyzer',
     'HealthAnalyzer'
 ] 

@@ -1,34 +1,26 @@
-# Node.js 18 Alpine 이미지 사용
+# Node.js 18 LTS 이미지 사용
 FROM node:18-alpine
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 의존성 설치
-RUN apk add --no-cache libc6-compat
+# 시스템 패키지 설치 (curl for healthcheck)
+RUN apk add --no-cache curl
 
-# 패키지 파일 복사 및 의존성 설치
+# package.json 및 package-lock.json 복사
 COPY package*.json ./
 
-# husky prepare 스크립트 비활성화
-RUN npm config set ignore-scripts true
-
 # 의존성 설치
-RUN npm ci
+RUN npm ci --only=production
 
-# 소스 코드 복사
+# 애플리케이션 코드 복사
 COPY . .
 
-# husky 재활성화 및 Next.js 앱 빌드 (ESLint 오류 무시)
-RUN npm config set ignore-scripts false
-RUN npm run build -- --no-lint
-
-# 포트 3000 노출
+# 포트 노출
 EXPOSE 3000
 
-# 환경 변수 설정
-ENV NODE_ENV=production
-ENV PORT=3000
+# 헬스체크를 위한 curl 설치 확인
+RUN curl --version
 
-# 애플리케이션 실행
-CMD ["npm", "start"] 
+# 개발 모드로 실행
+CMD ["npm", "run", "dev"] 

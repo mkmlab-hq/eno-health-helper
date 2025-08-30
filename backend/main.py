@@ -22,14 +22,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app', 'services'))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- 실제 분석기 import ---
+# --- mkm-core-ai 통합 인터페이스 import ---
 try:
-    from app.services.real_rppg_analyzer import RealRPPGAnalyzer
+    from app.services.mkm_core_ai_integration import MKMCoreAIIntegration
     from app.services.voice_analyzer import VoiceAnalyzer
     REAL_ANALYZERS_AVAILABLE = True
-    logger.info("✅ 실제 분석기 모듈 로드 성공")
+    logger.info("✅ mkm-core-ai 통합 인터페이스 로드 성공")
 except ImportError as e:
-    logger.warning(f"⚠️ 실제 분석기 모듈 로드 실패: {e}")
+    logger.warning(f"⚠️ mkm-core-ai 통합 인터페이스 로드 실패: {e}")
     logger.warning("시뮬레이션 모드로 작동합니다.")
     REAL_ANALYZERS_AVAILABLE = False
 
@@ -97,26 +97,26 @@ app.add_middleware(
 )
 logger.info("CORS 미들웨어 추가 완료")
 
-# --- 실제 분석기 인스턴스 생성 ---
+# --- mkm-core-ai 통합 인터페이스 인스턴스 생성 ---
 if REAL_ANALYZERS_AVAILABLE:
-    rppg_analyzer = RealRPPGAnalyzer()
+    rppg_analyzer = MKMCoreAIIntegration()
     voice_analyzer = VoiceAnalyzer()
-    logger.info("✅ 실제 분석기 인스턴스 생성 완료")
+    logger.info("✅ mkm-core-ai 통합 인터페이스 인스턴스 생성 완료")
 else:
     rppg_analyzer = None
     voice_analyzer = None
     logger.warning("⚠️ 시뮬레이션 모드로 작동")
 
 # --- 실제 RPPG 분석 함수 ---
-def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGResult:
+async def analyze_rppg_from_video(video_data: bytes, frame_count: int = 300) -> RPPGResult:
     """
     비디오 데이터에서 RPPG 분석 수행
     실제 분석기가 있으면 실제 알고리즘, 없으면 서비스 불가
     """
     try:
         if REAL_ANALYZERS_AVAILABLE and rppg_analyzer:
-            logger.info("🔬 실제 RPPG 분석기 사용")
-            result = rppg_analyzer.analyze_video_data(video_data, frame_count)
+            logger.info("🔬 mkm-core-ai RPPG 분석기 사용")
+            result = await rppg_analyzer.analyze_rppg(video_data, frame_count)
             
             return RPPGResult(
                 heart_rate=result["heart_rate"],
@@ -218,7 +218,7 @@ async def measure_rppg(
         logger.info(f"🔬 RPPG 측정 요청: {len(video_data)} bytes, {frame_count} 프레임, 사용자: {user_id}")
         
         # RPPG 분석 수행
-        rppg_result = analyze_rppg_from_video(video_data, frame_count)
+        rppg_result = await analyze_rppg_from_video(video_data, frame_count)
         
         # 결과 반환
         return {
@@ -289,7 +289,7 @@ async def measure_combined_health(
         logger.info(f"🔬 통합 건강 측정 요청: 비디오 {len(video_data)} bytes, 오디오 {len(audio_data)} bytes, 사용자: {user_id}")
         
         # 분석 수행
-        rppg_result = analyze_rppg_from_video(video_data, frame_count)
+        rppg_result = await analyze_rppg_from_video(video_data, frame_count)
         voice_result = analyze_voice_from_audio(audio_data, duration)
         
         # 종합 건강 점수 계산

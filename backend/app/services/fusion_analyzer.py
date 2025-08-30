@@ -13,7 +13,7 @@
 import numpy as np
 import cv2
 import librosa
-from sklearn.ensemble import RandomForestRegressor
+# RandomForestRegressor는 현재 사용하지 않음 (LinearRegression 사용)
 from sklearn.preprocessing import StandardScaler
 from typing import Dict, List, Optional, Tuple, Any
 import logging
@@ -82,21 +82,42 @@ class AdvancedFusionAnalyzer:
         # 모델 초기화
         self._initialize_fusion_model()
         
+        # 훈련된 모델 로드 시도
+        self._load_trained_model()
+        
         logger.info("고급 rPPG-음성 융합 분석 엔진 초기화 완료 (MKM Lab 모니터링 통합)")
     
     def _initialize_fusion_model(self):
         """융합 머신러닝 모델 초기화"""
         try:
-            self.fusion_model = RandomForestRegressor(
-                n_estimators=100,
-                max_depth=10,
-                random_state=42,
-                n_jobs=-1
-            )
-            logger.info("융합 모델 초기화 성공")
+            # LinearRegression 모델 사용 (훈련 완료됨)
+            from sklearn.linear_model import LinearRegression
+            self.fusion_model = LinearRegression()
+            logger.info("LinearRegression 융합 모델 초기화 성공")
         except Exception as e:
             logger.error(f"융합 모델 초기화 실패: {e}")
             self.fusion_model = None
+    
+    def _load_trained_model(self):
+        """훈련된 모델 로드"""
+        try:
+            import pickle
+            import os
+            
+            model_path = "./real_data_fusion_output/trained_models/real_linear_regression.pkl"
+            scaler_path = "./real_data_fusion_output/trained_models/real_feature_scaler.pkl"
+            
+            if os.path.exists(model_path) and os.path.exists(scaler_path):
+                with open(model_path, 'rb') as f:
+                    self.fusion_model = pickle.load(f)
+                with open(scaler_path, 'rb') as f:
+                    self.scaler = pickle.load(f)
+                logger.info("훈련된 LinearRegression 모델 로드 성공")
+            else:
+                logger.info("훈련된 모델 파일을 찾을 수 없습니다. 기본 모델을 사용합니다.")
+        except Exception as e:
+            logger.warning(f"훈련된 모델 로드 실패: {e}")
+            logger.info("기본 LinearRegression 모델을 사용합니다.")
     
     async def analyze_fusion(
         self,
