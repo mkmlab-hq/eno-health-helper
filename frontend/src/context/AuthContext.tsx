@@ -1,8 +1,29 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, UserCredential } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+// 개발용 더미 AuthContext (Firebase 비활성화)
+type User = { email: string } | null;
+type UserCredential = { user: User };
+
+// 더미 auth 객체 및 함수
+const auth = {};
+const signInWithEmailAndPassword = async (_auth: any, email: string, password: string) => {
+  console.log('개발 모드: 로그인 시뮬레이션', { email, password });
+  return { user: { email } };
+};
+const createUserWithEmailAndPassword = async (_auth: any, email: string, password: string) => {
+  console.log('개발 모드: 회원가입 시뮬레이션', { email, password });
+  return { user: { email } };
+};
+const signOut = async (_auth: any) => {
+  console.log('개발 모드: 로그아웃 시뮬레이션');
+  return;
+};
+const onAuthStateChanged = (_auth: any, callback: (user: User) => void) => {
+  // 개발 모드: 항상 null 유저
+  callback(null);
+  return () => {};
+};
 
 interface AuthContextType {
   currentUser: User | null;
@@ -55,12 +76,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    if (typeof onAuthStateChanged === 'function') {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user);
+        setLoading(false);
+      });
+      return unsubscribe;
+    } else {
+      // 개발 모드: 더미 유저 처리
+      setCurrentUser(null);
       setLoading(false);
-    });
-
-    return unsubscribe;
+      return () => {};
+    }
   }, []);
 
   const value: AuthContextType = {
