@@ -95,313 +95,89 @@
   .bg-glass {
     background: rgba(17, 25, 40, 0.8);
   }
+
+  /* MKM12 데모 전용 스타일 */
+  .mkm12-demo {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  }
+
+  .mkm12-slider {
+    @apply w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer;
+    background: linear-gradient(to right, #374151 0%, #374151 100%);
+  }
+
+  .mkm12-slider::-webkit-slider-thumb {
+    @apply appearance-none w-6 h-6 rounded-full cursor-pointer;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+
+  .mkm12-slider::-moz-range-thumb {
+    @apply w-6 h-6 rounded-full cursor-pointer border-0;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+
+  .mkm12-container {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .mkm12-button {
+    @apply py-3 px-6 rounded-full font-bold transition-all duration-300;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+  }
+
+  .mkm12-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+  }
+
+  .mkm12-button.playing {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+  }
+
+  .mkm12-button.playing:hover {
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+  }
 }
 
 /* 새로운 디자인 시스템 */
-
-/* 글래스 버튼 스타일 */
-.glass-button {
-  background: rgba(17, 25, 40, 0.75);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(0, 212, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  color: white;
-  font-weight: 600;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.glass-button:hover {
-  background: rgba(17, 25, 40, 0.9);
-  border-color: rgba(0, 212, 255, 0.3);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-/* 네온 그림자 효과 */
-.shadow-neon-cyan {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-}
-
-/* 폰트 클래스 */
-.font-orbitron {
-  font-family: 'Orbitron', monospace;
-}
-
-.font-noto {
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-}
-
-/* 모바일 최적화 스타일 */
 @layer components {
-  /* 모바일 터치 최적화 */
-  .mobile-optimized {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  /* 카메라 가이드라인 */
-  .camera-guideline {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 200px;
-    height: 200px;
-    border: 3px solid rgba(0, 212, 255, 0.8);
-    border-radius: 50%;
-    pointer-events: none;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  .camera-guideline::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 160px;
-    height: 160px;
-    border: 2px solid rgba(0, 212, 255, 0.6);
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite 0.5s;
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 0.6;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1.05);
-    }
-  }
-
-  /* 음성 녹음 애니메이션 */
-  .voice-recording {
-    animation: voicePulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes voicePulse {
-    0%, 100% {
-      transform: scale(1);
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
-    }
-    50% {
-      transform: scale(1.1);
-      box-shadow: 0 0 30px rgba(34, 197, 94, 0.8);
-    }
-  }
-
-  /* 진행률 바 */
-  .progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 16px 0;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #06b6d4);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-  }
-
-  /* 권한 상태 표시 */
-  .permission-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .permission-granted {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-
-  .permission-pending {
-    background: rgba(251, 191, 36, 0.1);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-  }
-
-  /* 결과 카드 */
-  .result-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 20px;
-    margin: 16px 0;
-    backdrop-filter: blur(10px);
-  }
-
-  .result-card h3 {
-    margin-bottom: 16px;
-    font-size: 18px;
-    font-weight: 600;
-  }
-
-  .result-card .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 12px;
-  }
-
-  .result-card .grid > div {
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    font-size: 14px;
-  }
-
-  /* 버튼 그룹 */
-  .button-group {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    justify-content: center;
-  }
-
-  .button-group button {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 120px;
-  }
-
-  .button-group button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-}
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .glass-card {
-    margin: 16px;
-    padding: 1rem;
-  }
-
   .glass-button {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
-  .camera-guideline {
-    width: 160px;
-    height: 160px;
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
   }
 
-  .camera-guideline::before {
-    width: 120px;
-    height: 120px;
+  .hero-bg {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   }
 
-  .button-group {
-    flex-direction: column;
+  .glassmorphism {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .button-group button {
-    min-width: auto;
-    width: 100%;
+  .feature-card {
+    transition: all 0.3s ease;
   }
 
-  .result-card {
-    padding: 16px;
-    margin: 12px 0;
+  .feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   }
-}
-
-@media (max-width: 480px) {
-  .glass-card {
-    margin: 12px;
-    padding: 16px;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-  }
-
-  .camera-guideline {
-    width: 140px;
-    height: 140px;
-  }
-
-  .camera-guideline::before {
-    width: 100px;
-    height: 100px;
-  }
-}
-
-/* 접근성 개선 */
-@media (prefers-reduced-motion: reduce) {
-  .camera-guideline,
-  .voice-recording {
-    animation: none;
-  }
-
-  .progress-fill {
-    transition: none;
-  }
-}
-
-/* 다크 모드 지원 */
-@media (prefers-color-scheme: dark) {
-  .glass-card {
-    background: rgba(17, 25, 40, 0.85);
-  }
-}
-
-/* 고대비 모드 지원 */
-@media (prefers-contrast: high) {
-  .neon-border {
-    border-width: 2px;
-  }
-
-  .camera-guideline {
-    border-width: 4px;
-  }
-}
-
-/* 스크롤바 스타일링 */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.4);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.6);
 }
 
 /* 스캔 효과 및 애니메이션 */
@@ -496,4 +272,23 @@
   background: rgba(251, 191, 36, 0.2);
   border: 1px solid rgba(251, 191, 36, 0.3);
   color: #fbbf24;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.6);
 }
