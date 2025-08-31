@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Vercel 배포용 설정
-  output: 'standalone',
+  // Vercel 배포용 설정 - standalone 제거
+  // output: 'standalone', // 이 줄 제거
   
   // 기본 설정
   reactStrictMode: true,
@@ -13,19 +13,9 @@ const nextConfig = {
     unoptimized: false,
   },
   
-  // API 라우트 활성화
-  experimental: {
-    appDir: true,
-  },
-  
   // 빌드 최적화
   poweredByHeader: false,
   compress: true,
-  
-  // 환경 변수
-  env: {
-    NODE_ENV: process.env.NODE_ENV || 'production',
-  },
 };
 
 module.exports = nextConfig;

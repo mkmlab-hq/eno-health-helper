@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import MKM12Demo from '@/components/landing/MKM12Demo';
+import PersonaDiary from '@/components/landing/PersonaDiary';
+import ChartAssistant from '@/components/landing/ChartAssistant';
 
 export default function LandingPage() {
   return (
@@ -73,25 +75,36 @@ export default function LandingPage() {
         <section id="products" className="py-20">
           <div className="container mx-auto px-6">
             <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">
-              서비스
+              서비스 포트폴리오
             </h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-slate-800 p-6 rounded-lg">
-                <h3 className="text-xl font-bold text-white mb-4">엔오건강도우미</h3>
-                <p className="text-gray-300 mb-4">
-                  rPPG와 음성 분석을 통한 정확한 건강 측정
-                </p>
-                <Link href="/measure" className="text-sky-400 hover:text-sky-300">
-                  체험하기 →
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* ENO Health Helper */}
+              <div className="glass-card p-8 rounded-xl flex flex-col items-center border-2 border-sky-400 shadow-2xl shadow-sky-500/20">
+                <div className="text-4xl mb-4">🩺</div>
+                <h3 className="text-2xl font-bold text-white mb-2">엔오건강도우미</h3>
+                <p className="text-gray-400 flex-grow mb-6">AI rPPG와 음성 분석을 통해 당신의 건강 상태를 35초 만에 측정하고 모니터링합니다.</p>
+                <Link href="/measure" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition text-center">
+                  측정 시작하기
                 </Link>
               </div>
-              <div className="bg-slate-800 p-6 rounded-lg">
-                <h3 className="text-xl font-bold text-white mb-4">MKM12 대시보드</h3>
-                <p className="text-gray-300 mb-4">
-                  개인 맞춤형 건강 분석 및 추천
-                </p>
-                <Link href="/mkm12-dashboard" className="text-sky-400 hover:text-sky-300">
-                  보러가기 →
+              
+              {/* Persona Diary */}
+              <div className="glass-card p-8 rounded-xl flex flex-col items-center">
+                <div className="text-4xl mb-4">📔</div>
+                <h3 className="text-2xl font-bold text-white mb-2">페르소나 다이어리</h3>
+                <p className="text-gray-400 flex-grow mb-6">당신의 일상과 감정을 기록하고, MKM-12 페르소나 이론에 기반한 맞춤형 건강 관리를 제공합니다.</p>
+                <Link href="/persona-diary" className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                  일기 시작하기
+                </Link>
+              </div>
+              
+              {/* AI Chart Assistant */}
+              <div className="glass-card p-8 rounded-xl flex flex-col items-center">
+                <div className="text-4xl mb-4">🤖</div>
+                <h3 className="text-2xl font-bold text-white mb-2">AI 차트 어시스턴트</h3>
+                <p className="text-gray-400 flex-grow mb-6">의료진을 위한 AI 보조 도구. 복잡한 환자 차트를 요약하고, 핵심 인사이트를 제공합니다.</p>
+                <Link href="/chart-assistant" className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                  차트 분석하기
                 </Link>
               </div>
             </div>
