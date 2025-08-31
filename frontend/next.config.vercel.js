@@ -7,7 +7,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
-  // 이미지 최적화
+  // 이미지 최적화 활성화
   images: {
     domains: ['localhost', 'eno.no1kmedi.com'],
     unoptimized: false,
@@ -18,13 +18,19 @@ const nextConfig = {
     appDir: true,
   },
   
-  // 빌드 최적화
+  // 빌드 시 경고 무시
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  
+  // Vercel 최적화
   poweredByHeader: false,
   compress: true,
   
-  // 환경 변수
+  // 환경 변수 설정
   env: {
-    NODE_ENV: process.env.NODE_ENV || 'production',
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 };
 
