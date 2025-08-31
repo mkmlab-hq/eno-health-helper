@@ -51,8 +51,12 @@ export default function SignupPage() {
       const userCredential = await signUp(email, password);
       const user = userCredential.user;
 
+      if (!user) {
+        throw new Error('사용자 생성에 실패했습니다.');
+      }
+
       // 사용자 프로필 정보를 Firestore에 저장
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(db, 'users', user.email || 'unknown'), {
         name: name.trim(),
         email: email.trim(),
         createdAt: new Date(),

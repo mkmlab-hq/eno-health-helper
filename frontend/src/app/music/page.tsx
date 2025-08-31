@@ -20,7 +20,7 @@ export default function MusicPage() {
 
     // 임시 감정 데이터 생성 (실제로는 건강 측정 결과에서 가져와야 함)
     setEmotionData({
-      userId: currentUser.uid,
+      userId: currentUser.email || 'unknown',
       emotion: 'calm',
       intensity: 0.7,
       confidence: 0.8,

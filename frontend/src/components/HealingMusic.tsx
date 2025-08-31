@@ -127,14 +127,14 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
 
   // 사용 횟수 제한 확인
   const checkUsageLimit = useCallback(async () => {
-    if (!user?.uid) {
+    if (!user?.email) {
       setUsageLimit({ canUse: false, remaining: 0, dailyCount: 0, dailyLimit: 3 });
       setIsCheckingUsage(false);
       return;
     }
 
     try {
-      const usage = await checkMusicUsageLimit(user.uid);
+      const usage = await checkMusicUsageLimit(user.email);
       setUsageLimit({
         canUse: usage.canUse,
         remaining: usage.remaining,
@@ -147,7 +147,7 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
     } finally {
       setIsCheckingUsage(false);
     }
-  }, [user?.uid]);
+  }, [user?.email]);
 
   // 컴포넌트 마운트 시 사용량 제한 확인
   useEffect(() => {
@@ -156,7 +156,7 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
 
   // 건강 데이터 기반 음악 추천 생성
   const generateMusicRecommendations = useCallback(async () => {
-    if (!user?.uid || !usageLimit?.canUse) {
+    if (!user?.email || !usageLimit?.canUse) {
       console.warn('사용량 제한에 도달했거나 사용자 인증이 필요합니다');
       return;
     }
@@ -165,7 +165,7 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
     
     try {
       // 사용량 증가
-      const newCount = await incrementMusicUsage(user.uid);
+      const newCount = await incrementMusicUsage(user.email);
       if (newCount !== null) {
         // 사용량 제한 재확인
         await checkUsageLimit();
@@ -180,7 +180,7 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
         body: JSON.stringify({
           healthData,
           requestType: 'recommendations',
-          userId: user.uid
+          userId: user.email
         }),
       });
 
@@ -200,7 +200,7 @@ export default function HealingMusic({ healthData, onClose }: HealingMusicProps)
     } finally {
       setIsLoading(false);
     }
-  }, [healthData, user?.uid, usageLimit?.canUse, checkUsageLimit]);
+  }, [healthData, user?.email, usageLimit?.canUse, checkUsageLimit]);
 
   // Fallback 추천 생성 (AI 서비스 실패 시)
   const generateFallbackRecommendations = (healthData: HealthData): MusicRecommendation[] => {
