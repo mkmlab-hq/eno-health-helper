@@ -2,6 +2,7 @@
 /google-cloud-sdk*
 /anthoscli/
 *.tar.gz
+
 # Python
 __pycache__/
 *.py[cod]
@@ -47,7 +48,7 @@ Thumbs.db
 *.log
 logs/
 
-# Data files
+# Data files (대용량 파일 무시)
 *.csv
 *.json
 *.parquet
@@ -58,6 +59,13 @@ logs/
 *.mp4
 *.wav
 *.mp3
+
+# Backend 대용량 데이터 무시
+backend/data/
+backend/real_data_fusion_output/
+backend/real_fusion_output/
+backend/*.zip
+backend/*.tar.gz
 
 # Node.js (Frontend)
 node_modules/

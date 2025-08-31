@@ -1,7 +1,10 @@
 // UI Components
-export { Button, buttonVariants } from './Button';
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './Card';
-export { Spinner, PageSpinner, ButtonSpinner, CardSpinner, spinnerVariants } from './Spinner';
+export { Button } from "./Button"
+export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./Card"
+export { Spinner } from "./Spinner"
+export { Progress } from "./Progress"
+export { Badge, badgeVariants } from "./Badge"
+export { Tabs, TabsContent, TabsList, TabsTrigger } from "./Tabs"
 
 // Types
 export type { ButtonProps } from './Button';

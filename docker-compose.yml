@@ -1,22 +1,19 @@
 version: '3.8'
 
 services:
-  # 백엔드 서비스 (Python Flask)
-  backend:
-    build: 
-      context: ./backend
+  # MKM12 Backend API
+  mkm12-backend:
+    build:
+      context: .
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
-      - FLASK_ENV=development
-      - FLASK_APP=main.py
-      - PYTHONPATH=/app
+      - HOST=0.0.0.0
+      - PORT=8000
+      - RELOAD=false
     volumes:
       - ./backend:/app
-      - /app/__pycache__
-    networks:
-      - eno-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -24,95 +21,30 @@ services:
       timeout: 10s
       retries: 3
 
-  # 프론트엔드 서비스 (Next.js)
-  frontend:
-    build: 
+  # Frontend Development Server
+  frontend-dev:
+    build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_APP_NAME=Eno Health Helper
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
-    networks:
-      - eno-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Firebase Functions 서비스
-  functions:
-    build: 
-      context: ./functions
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5001"
     environment:
       - NODE_ENV=development
-      - PORT=5001
-    volumes:
-      - ./functions:/app
-      - /app/node_modules
     depends_on:
-      - backend
-    networks:
-      - eno-network
+      - mkm12-backend
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # Redis 캐시 서비스 (선택사항)
-  redis:
-    image: redis:7-alpine
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
     ports:
-      - "6379:6379"
+      - "80:80"
     volumes:
-      - redis_data:/data
-    networks:
-      - eno-network
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - mkm12-backend
+      - frontend-dev
     restart: unless-stopped
-    command: redis-server --appendonly yes
-
-  # PostgreSQL 데이터베이스 (선택사항)
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=eno_health
-      - POSTGRES_USER=eno_user
-      - POSTGRES_PASSWORD=eno_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - eno-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eno_user -d eno_health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  eno-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-
-volumes:
-  redis_data:
-  postgres_data:

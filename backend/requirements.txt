@@ -1,49 +1,9 @@
-# 기본 웹 프레임워크
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-
-# 핵심 과학 라이브러리 (Windows 호환)
-numpy>=1.26.0
-scipy>=1.11.4; sys_platform != "win32"
-scipy>=1.11.4; sys_platform == "win32" --only-binary=scipy
-opencv-python==4.8.1.78
-
-# MediaPipe Face Mesh (얼굴 검출)
-mediapipe>=0.10.0
-
-# PyTorch 및 MAE 모델
-torch>=2.0.0
-torchvision>=0.15.0
-timm>=0.9.0
-
-# 음성 분석 (Windows 호환)
-librosa==0.10.1
-
-# 데이터 처리
-pandas==2.1.4
-
-# 웹 프레임워크 지원
-python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-pydantic==2.5.0
-pydantic-settings==2.1.0
-httpx==0.25.2
-
-# 데이터베이스
-sqlalchemy==2.0.23
-psycopg2-binary==2.9.9
-alembic==1.12.1
-
-
-# 백그라운드 작업 및 캐싱
-redis>=4.2.0,<5.0.0
-celery==5.3.4
-fastapi-cache2[redis]==0.2.1
-
-# 환경 설정
-python-dotenv==1.0.0
-
-# Google Cloud Storage (GCS 데이터 로더용)
-google-cloud-storage==2.10.0
-google-auth==2.23.4 
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.9.0
+starlette>=0.37.0,<1.0.0
+firebase-admin>=6.0.0
+requests>=2.31.0
+numpy>=1.24.0
+plotly>=5.17.0
+python-multipart>=0.0.6 
