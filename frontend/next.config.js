@@ -23,9 +23,9 @@ const nextConfig = {
   compress: true,
   
   // 환경 변수
-  env: {
-    NODE_ENV: process.env.NODE_ENV || 'production',
-  },
+  // env: {
+  //   NODE_ENV: process.env.NODE_ENV,
+  // },
 };
 
 module.exports = nextConfig;
