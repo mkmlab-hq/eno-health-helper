@@ -42,6 +42,7 @@ jobs:
 
     - name: Build and push Backend image
       uses: docker/build-push-action@v5
+      if: hashFiles('backend/Dockerfile') != ''
       with:
         context: ./backend
         push: true
@@ -50,6 +51,7 @@ jobs:
 
     - name: Build and push Frontend image
       uses: docker/build-push-action@v5
+      if: hashFiles('frontend/Dockerfile') != ''
       with:
         context: ./frontend
         push: true
@@ -58,6 +60,7 @@ jobs:
 
     - name: Build and push Functions image
       uses: docker/build-push-action@v5
+      if: hashFiles('functions/Dockerfile') != ''
       with:
         context: ./functions
         push: true

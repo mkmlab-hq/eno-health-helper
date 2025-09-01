@@ -8,8 +8,11 @@
         "eno-health-helper": [
           "eno-health-helper"
         ],
-        "eno-no1kmedi": [
-          "eno-no1kmedi-e5d0d"
+        "eno-no1kmedi-eca9f": [
+          "eno-no1kmedi-eca9f"
+        ],
+        "eno-health-helper-main": [
+          "eno-health-helper-main"
         ]
       }
     }
