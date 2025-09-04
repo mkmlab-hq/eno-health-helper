@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N.O �ǰ� ��Ī | MKM-Life</title>
+    <script src="https://cdn.tailwindcss.com/3.4.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #0f172a);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .card {
+            background-color: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        }
+        .pulse-ring {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+        .persona-card {
+            background: linear-gradient(145deg, rgba(59, 130, 246, 0.2), rgba(30, 41, 59, 0.8));
+        }
+    </style>
+</head>
+<body class="gradient-bg text-white antialiased">
+    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+        
+        <header class="text-center mb-10">
+            <div class="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
+                <div class="absolute inset-0 bg-blue-500 rounded-full opacity-30 pulse-ring"></div>
+                <i class="fas fa-brain text-5xl text-blue-400 z-10"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight">
+                N.O �ǰ� ��Ī
+            </h1>
+            <p class="text-lg text-slate-300 mt-2">����� 12 �丣�ҳ��� �߰��ϰ�, ������ ���� ��Ī�մϴ�.</p>
+        </header>
+
+        <main class="w-full max-w-md mx-auto">
+            <div class="card rounded-2xl shadow-2xl p-8 space-y-8">
+                
+                <div id="main-actions">
+                    <button id="start-measurement" class="btn-primary w-full text-lg font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center space-x-3">
+                        <i class="fas fa-camera"></i>
+                        <span class="text-2xl font-light">+</span>
+                        <i class="fas fa-microphone"></i>
+                        <span>�ǽð� �丣�ҳ� �м��ϱ�</span>
+                    </button>
+                    <p class="text-center text-slate-400 text-sm mt-3">��(30��)�� ����(5��)����, �� 35�� ���� ����� �����մϴ�.</p>
+                </div>
+
+                <div id="measurement-view" class="hidden text-center">
+                    <div class="relative w-40 h-40 mx-auto border-4 border-blue-500 rounded-full flex items-center justify-center overflow-hidden">
+                        <div id="progress-circle" class="absolute inset-0 transition-all duration-1000" style="background: conic-gradient(#3b82f6 0deg, transparent 0deg);"></div>
+                        <div class="absolute w-36 h-36 bg-slate-800 rounded-full"></div>
+                        <i id="camera-icon" class="fas fa-camera text-6xl text-blue-400 opacity-90 absolute z-10"></i>
+                        <i id="mic-icon" class="fas fa-microphone text-6xl text-blue-400 opacity-90 absolute z-10 hidden"></i>
+                        <p id="timer" class="text-4xl font-bold z-10">35</p>
+                    </div>
+                    <p id="instruction-text" class="mt-4 text-slate-300 text-lg">ī�޶� �������� �������ּ���...</p>
+                    <p id="status-message" class="mt-2 text-blue-400 font-semibold h-6"></p>
+                </div>
+                
+                <div id="result-view" class="hidden text-center">
+                    <h3 class="text-2xl font-bold text-blue-400 mb-4">�м� �Ϸ�!</h3>
+                    <div class="grid grid-cols-2 gap-4 text-left mb-6">
+                        <div class="bg-slate-700 p-4 rounded-lg">
+                            <p class="text-sm text-slate-400">�ɹڼ�</p>
+                            <p id="hr-result" class="text-2xl font-bold">-- BPM</p>
+                        </div>
+                        <div class="bg-slate-700 p-4 rounded-lg">
+                            <p class="text-sm text-slate-400">��Ʈ���� ����</p>
+                            <p id="stress-result" class="text-2xl font-bold">-- / 100</p>
+                        </div>
+                    </div>
+                    <div class="persona-card p-4 rounded-lg text-center">
+                        <p class="text-sm text-blue-300">���� �丣�ҳ�</p>
+                        <p id="persona-result" class="text-2xl font-bold text-white">--</p>
+                    </div>
+                    <button id="restart-measurement" class="w-full bg-slate-600 hover:bg-slate-500 text-lg font-bold py-4 px-6 rounded-xl shadow-lg mt-6">
+                        �ٽ� �����ϱ�
+                    </button>
+                </div>
+                
+                <div class="border-t border-slate-700 my-6"></div>
+
+                <div>
+                    <h3 class="text-xl font-bold text-center mb-4 text-slate-300">�ٽ� ��� (BETA)</h3>
+                    <ul class="space-y-3 text-slate-300">
+                        <li class="flex items-center">
+                            <i class="fas fa-robot w-6 text-center text-blue-400 mr-3"></i>
+                            <span>�ǽð� 12 �丣�ҳ� �м� �� ����� ����</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-file-alt w-6 text-center text-blue-400 mr-3"></i>
+                            <span>AI�� ����ϴ� ���ؽ�Ʈ ���̾</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-lightbulb w-6 text-center text-blue-400 mr-3"></i>
+                            <span>�丣�ҳ� ������ �ַ�� ����</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-10 text-slate-500">
+            <p>&copy; 2025 MKM Lab. All rights reserved.</p>
+            <p class="text-sm mt-1">�� ���񽺴� �Ƿ��� ������ ��ü�� �� �����ϴ�.</p>
+        </footer>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start-measurement');
+        const restartBtn = document.getElementById('restart-measurement');
+        const mainActions = document.getElementById('main-actions');
+        const measurementView = document.getElementById('measurement-view');
+        const resultView = document.getElementById('result-view');
+        const timerEl = document.getElementById('timer');
+        const statusMessageEl = document.getElementById('status-message');
+        const hrResultEl = document.getElementById('hr-result');
+        const stressResultEl = document.getElementById('stress-result');
+        const personaResultEl = document.getElementById('persona-result');
+        const instructionText = document.getElementById('instruction-text');
+        const cameraIcon = document.getElementById('camera-icon');
+        const micIcon = document.getElementById('mic-icon');
+        const progressCircle = document.getElementById('progress-circle');
+
+        let timerInterval;
+        const personas = ["��ǳ ���� ���", "������ ������ ������", "����� ������", "�������� ��ô��", "������ �м���"];
+        const TOTAL_DURATION = 35;
+
+        function startMeasurement() {
+            mainActions.classList.add('hidden');
+            resultView.classList.add('hidden');
+            measurementView.classList.remove('hidden');
+
+            let timeLeft = TOTAL_DURATION;
+            timerEl.textContent = timeLeft;
+            statusMessageEl.textContent = '�м��� �����մϴ�...';
+            instructionText.textContent = 'ī�޶� �������� �������ּ���...';
+            cameraIcon.classList.remove('hidden');
+            micIcon.classList.add('hidden');
+            progressCircle.style.background = `conic-gradient(#3b82f6 0deg, transparent 0deg)`;
+
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                const progress = ((TOTAL_DURATION - timeLeft) / TOTAL_DURATION) * 360;
+                progressCircle.style.background = `conic-gradient(#3b82f6 ${progress}deg, transparent ${progress}deg)`;
+
+                if (timeLeft === 30) {
+                    statusMessageEl.textContent = '���� �ν��ϰ� �ֽ��ϴ�...';
+                }
+                if (timeLeft === 15) {
+                    statusMessageEl.textContent = '�̼� ���� ��ȭ�� ���� ���Դϴ�...';
+                }
+                if (timeLeft === 5) {
+                    statusMessageEl.textContent = '���� �м��� �����մϴ�...';
+                    instructionText.innerHTML = "'���� �Ϸ�� ��̳���?'<br>��� �����ϰ� �������ּ���.";
+                    cameraIcon.classList.add('hidden');
+                    micIcon.classList.remove('hidden');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showResults();
+                }
+            }, 1000);
+        }
+
+        function showResults() {
+            measurementView.classList.add('hidden');
+            resultView.classList.remove('hidden');
+
+            // Simulate result generation
+            const heartRate = Math.floor(Math.random() * 21) + 65; // 65-85 BPM
+            const stressLevel = Math.floor(Math.random() * 31) + 20; // 20-50
+            const randomPersona = personas[Math.floor(Math.random() * personas.length)];
+
+            hrResultEl.textContent = `${heartRate} BPM`;
+            stressResultEl.textContent = `${stressLevel} / 100`;
+            personaResultEl.textContent = randomPersona;
+        }
+        
+        function resetToMain() {
+            clearInterval(timerInterval);
+            measurementView.classList.add('hidden');
+            resultView.classList.add('hidden');
+            mainActions.classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', startMeasurement);
+        restartBtn.addEventListener('click', resetToMain);
+
+    </script>
+</body>
+</html>
+
