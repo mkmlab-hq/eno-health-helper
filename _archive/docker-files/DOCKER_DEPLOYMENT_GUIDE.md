@@ -1,8 +1,14 @@
-# 🐳 Eno Health Helper - Docker 배포 가이드
+# 🐳 Eno Health Helper - Docker 배포 가이드 (아카이브됨)
 
-## 📋 개요
+## ⚠️ 주의사항
 
-이 가이드는 `eno-health-helper` 프로젝트를 도커 이미지로 빌드하고 배포하는 방법을 설명합니다.
+**이 문서는 아카이브되었습니다.**  
+프로젝트 크로노스 v2.2에서는 Docker 대신 Railway + Replicate 아키텍처를 사용합니다.  
+최신 배포 가이드는 `PROJECT_CHRONOS_TECHNICAL_IMPLEMENTATION_V2_2.md`를 참조하세요.
+
+## 📋 개요 (레거시)
+
+이 가이드는 `eno-health-helper` 프로젝트의 레거시 Docker 배포 방법을 설명합니다.
 
 ## 🚀 빠른 시작
 

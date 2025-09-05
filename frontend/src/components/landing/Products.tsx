@@ -46,10 +46,25 @@ export default function Products() {
               의료진을 위한 AI 보조 도구. 복잡한 환자 차트를 요약하고, 핵심 인사이트를 제공합니다.
             </p>
             <a 
-              href="#" 
+              href="/chart-assistant" 
               className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition"
             >
               자세히 보기
+            </a>
+          </div>
+          
+          {/* AI Chart Dowmi */}
+          <div className="glassmorphism p-8 rounded-xl flex flex-col items-center border-2 border-eno-400 shadow-2xl shadow-eno-500/20">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-2xl font-bold text-white mb-2">AI 차트 도우미</h3>
+            <p className="text-gray-400 flex-grow mb-6">
+              의료진을 위한 완전한 AI 진단 도구. 차트 분석부터 SOAP 차트 생성까지 원스톱 솔루션.
+            </p>
+            <a 
+              href="/chart-dowmi" 
+              className="w-full bg-eno-500 hover:bg-eno-600 text-white font-bold py-3 px-6 rounded-lg transition"
+            >
+              시작하기
             </a>
           </div>
         </div>
