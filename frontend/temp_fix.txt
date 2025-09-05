@@ -1,0 +1,11 @@
+import React, { useState, useEffect } from 'react'; 
+import { checkMusicUsageLimit } from '@/lib/firebase'; 
+ 
+interface UsageLimit { 
+  canUse: boolean; 
+  remaining: number; 
+  dailyCount: number; 
+  dailyLimit: number; 
+} 
+ 
+export default function HealingMusic() { 
