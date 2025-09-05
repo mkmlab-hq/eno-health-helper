@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>엔오건강도우미 - PWA 데모</title>
+    <title>엔오건강도우미 -  데모</title>
     <meta name="description" content="따뜻한 기술, 직관적인 건강 - AI 기반 rPPG와 음성 분석을 통한 정확한 건강 측정 서비스">
     
-    <!-- PWA 메타 태그 -->
+    <!--  메타 태그 -->
     <meta name="theme-color" content="#0ea5e9">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="엔오건강도우미">
     
-    <!-- PWA 매니페스트 -->
+    <!--  매니페스트 -->
     <link rel="manifest" href="/manifest.json">
     
-    <!-- PWA 아이콘 -->
+    <!--  아이콘 -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
@@ -62,7 +62,7 @@
                     AI 기반 rPPG와 음성 분석을 통해 정확한 건강 상태를 측정하고 모니터링하세요
                 </p>
                 
-                <!-- PWA 설치 버튼 -->
+                <!-- 버튼 텍스트 변경 -->
                 <div class="mb-8">
                     <button id="installBtn" class="btn-primary text-xl px-8 py-4 hidden">
                         📱 앱 설치하기
@@ -72,10 +72,7 @@
                 <!-- 데모 링크 -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
                     <a href="/measure" class="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        🎯 측정 시작하기
-                    </a>
-                    <a href="/result" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        📊 결과 보기
+                        🎯 검사 시작하기
                     </a>
                 </div>
             </div>
@@ -146,30 +143,7 @@
 
     <!-- PWA 설치 스크립트 -->
     <script>
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-        
-        document.getElementById('installBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('PWA 설치됨');
-                }
-                deferredPrompt = null;
-                document.getElementById('installBtn').classList.add('hidden');
-            }
-        });
-        
-        // PWA 설치 후 이벤트
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA가 성공적으로 설치되었습니다!');
-        });
+        // PWA 관련 코드들 모두 삭제
     </script>
 </body>
 </html> 
