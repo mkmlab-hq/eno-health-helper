@@ -1,0 +1,41 @@
+# 대용량/불필요 파일 무시
+google-cloud-sdk/
+anthoscli
+*.tar.gz
+*.zip
+*.bin
+*.pkl
+*.h5
+*.ckpt
+*.pt
+*.pb
+*.npy
+*.npz
+# Firebase 서비스 계정 키 (보안상 중요)
+serviceAccountKey.json
+*.json.key
+
+# Python 가상환경
+.venv/
+venv/
+env/
+
+# Python 캐시
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 환경 변수
+.env
+.env.local
+
+# 로그 파일
+*.log
+
+# IDE 설정
+.vscode/
+.idea/
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db 
