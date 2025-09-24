@@ -630,3 +630,4 @@ if __name__ == "__main__":
     result = real_rppg_engine.analyze_video_frames(test_frames, 10.0)
     print("실제 rPPG 분석 결과:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
+

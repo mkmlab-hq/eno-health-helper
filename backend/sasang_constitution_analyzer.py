@@ -322,3 +322,4 @@ class SasangConstitutionAnalyzer:
 # 전역 분석기 인스턴스
 sasang_analyzer = SasangConstitutionAnalyzer()
 
+

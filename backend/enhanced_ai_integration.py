@@ -242,3 +242,4 @@ class MKM12HealthAnalyzer:
 # 전역 분석기 인스턴스
 mkm12_analyzer = MKM12HealthAnalyzer()
 
+
