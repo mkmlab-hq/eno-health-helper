@@ -1,0 +1,76 @@
+name: RPPG Accuracy Enhancement
+
+on:
+  workflow_dispatch:  # 수동 실행
+  schedule:
+    - cron: '0 2 * * *'  # 매일 새벽 2시 자동 실행
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/advanced_accuracy_training.py'
+      - 'backend/test_accuracy.py'
+      - 'backend/data/**'
+
+jobs:
+  rppg-accuracy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        if [ -f "backend/requirements.txt" ]; then
+          cd backend
+          pip install -r requirements.txt
+        else
+          echo "No requirements.txt found, skipping dependency installation"
+        fi
+        
+    - name: Run RPPG accuracy training
+      run: |
+        if [ -f "backend/advanced_accuracy_training.py" ]; then
+          cd backend
+          python advanced_accuracy_training.py
+        else
+          echo "advanced_accuracy_training.py not found, skipping training"
+        fi
+        
+    - name: Test accuracy improvements
+      run: |
+        if [ -f "backend/test_accuracy.py" ]; then
+          cd backend
+          python test_accuracy.py
+        else
+          echo "test_accuracy.py not found, skipping accuracy test"
+        fi
+        
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: rppg-accuracy-results
+        path: |
+          backend/medical_grade_training_results.json
+          backend/accuracy_test_results.json
+          backend/training_progress.png
+          
+    - name: Commit results
+      run: |
+        if [ -f "backend/medical_grade_training_results.json" ] || [ -f "backend/accuracy_test_results.json" ] || [ -f "backend/training_progress.png" ]; then
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add backend/medical_grade_training_results.json || true
+          git add backend/accuracy_test_results.json || true
+          git add backend/training_progress.png || true
+          git commit -m "Auto-update RPPG accuracy results" || exit 0
+          git push || exit 0
+        else
+          echo "No results files found, skipping commit"
+        fi 

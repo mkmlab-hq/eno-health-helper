@@ -1,0 +1,118 @@
+# GitHub 용량 최적화를 위한 .gitignore
+# 프로젝트 케이론 v2.0 - 자동 생성
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.pytest_cache/
+
+# 빌드 및 배포
+dist/
+build/
+.next/
+out/
+.nuxt/
+.output/
+.vuepress/dist/
+.serverless/
+.fusebox/
+
+# IDE 및 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 관련
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+temp/
+tmp/
+
+# 백업 파일
+*.bak
+*.backup
+*.old
+
+# 대용량 데이터 파일
+*.csv
+*.json
+*.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# 미디어 파일
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.wma
+
+# 압축 파일
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+
+# Docker
+.dockerignore
+Dockerfile.dev
+
+# Firebase
+.firebase/
+.firebaserc
+
+# 기타
+.env.local
+.env.production
+.env.development
+coverage/
+.nyc_output/
+*.tgz
+*.tar.gz
+
+# eno-health-helper 특별 규칙
+node_modules/
+.next/
+dist/
+build/

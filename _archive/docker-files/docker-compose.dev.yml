@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Backend (FastAPI) - 개발용
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/app
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+  # Frontend (Next.js) - 개발용
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - eno-network
+    restart: unless-stopped
+
+networks:
+  eno-network:
+    driver: bridge 

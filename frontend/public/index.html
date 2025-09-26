@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엔오건강도우미 - 카메라/마이크 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .test-section h2 {
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .waiting { background: rgba(255, 193, 7, 0.3); }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .controls {
+            margin-top: 30px;
+        }
+        .controls a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+        .controls a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 엔오건강도우미</h1>
+            <p>카메라와 마이크 연결 테스트</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📹 카메라 테스트</h2>
+            <button onclick="testCamera()" id="cameraBtn">카메라 권한 요청</button>
+            <div id="cameraStatus" class="status waiting">대기 중...</div>
+            <video id="video" autoplay playsinline muted></video>
+        </div>
+
+        <div class="test-section">
+            <h2>🎤 마이크 테스트</h2>
+            <button onclick="testMicrophone()" id="micBtn">마이크 권한 요청</button>
+            <div id="micStatus" class="status waiting">대기 중...</div>
+        </div>
+
+        <div class="controls">
+            <a href="#" onclick="resetTest()">테스트 초기화</a>
+            <a href="#" onclick="goToMeasure()">건강 측정 시작</a>
+        </div>
+    </div>
+
+    <script>
+        let cameraStream = null;
+        let microphoneStream = null;
+
+        async function testCamera() {
+            const btn = document.getElementById('cameraBtn');
+            const status = document.getElementById('cameraStatus');
+            const video = document.getElementById('video');
+
+            try {
+                btn.disabled = true;
+                status.textContent = '테스트 중...';
+                status.className = 'status waiting';
+
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        frameRate: 30
+                    } 
+                });
+
+                cameraStream = stream;
+                video.srcObject = stream;
+                
+                status.textContent = '✅ 카메라 연결 성공!';
+                status.className = 'status success';
+                
+                console.log('카메라 테스트 성공:', stream);
+            } catch (error) {
+                status.textContent = `❌ 카메라 오류: ${error.message}`;
+                status.className = 'status error';
+                console.error('카메라 테스트 실패:', error);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function testMicrophone() {
+            const btn = document.getElementById('micBtn');
+            const status = document.getElementById('micStatus');
+
+            try {
+                btn.disabled = true;
+                status.textContent = '테스트 중...';
+                status.className = 'status waiting';
+
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true 
+                });
+
+                microphoneStream = stream;
+                
+                status.textContent = '✅ 마이크 연결 성공!';
+                status.className = 'status success';
+                
+                console.log('마이크 테스트 성공:', stream);
+            } catch (error) {
+                status.textContent = `❌ 마이크 오류: ${error.message}`;
+                status.className = 'status error';
+                console.error('마이크 테스트 실패:', error);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function resetTest() {
+            // 스트림 정리
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            if (microphoneStream) {
+                microphoneStream.getTracks().forEach(track => track.stop());
+                microphoneStream = null;
+            }
+
+            // 비디오 초기화
+            const video = document.getElementById('video');
+            video.srcObject = null;
+
+            // 상태 초기화
+            document.getElementById('cameraStatus').textContent = '대기 중...';
+            document.getElementById('cameraStatus').className = 'status waiting';
+            document.getElementById('micStatus').textContent = '대기 중...';
+            document.getElementById('micStatus').className = 'status waiting';
+
+            // 버튼 활성화
+            document.getElementById('cameraBtn').disabled = false;
+            document.getElementById('micBtn').disabled = false;
+        }
+
+        function goToMeasure() {
+            alert('건강 측정 기능은 개발 중입니다. 카메라와 마이크 테스트가 성공하면 정상 작동합니다.');
+        }
+
+        // 페이지 로드 시 권한 상태 확인
+        window.addEventListener('load', async () => {
+            try {
+                const permissions = await navigator.permissions.query({ name: 'camera' });
+                console.log('카메라 권한 상태:', permissions.state);
+                
+                const micPermissions = await navigator.permissions.query({ name: 'microphone' });
+                console.log('마이크 권한 상태:', micPermissions.state);
+            } catch (error) {
+                console.log('권한 상태 확인 불가:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

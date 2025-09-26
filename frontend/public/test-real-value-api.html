@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실제값 API 테스트 - MKM Lab</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        button {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { border-left-color: #00ff88; }
+        .error { border-left-color: #ff4444; }
+        .info { border-left-color: #00d4ff; }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .status.online { background: #00ff88; color: #000; }
+        .status.offline { background: #ff4444; color: #fff; }
+        .status.testing { background: #ffaa00; color: #000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 MKM Lab 실제값 API 테스트</h1>
+        
+        <div class="test-section">
+            <h3>📡 서버 연결 상태</h3>
+            <div id="serverStatus">
+                <span class="status offline">백엔드 서버: 확인 중...</span>
+                <span class="status offline">프론트엔드 서버: 확인 중...</span>
+            </div>
+            <button onclick="checkServerStatus()">🔄 서버 상태 확인</button>
+        </div>
+
+        <div class="test-section">
+            <h3>💓 RPPG 실제값 API 테스트</h3>
+            <p>시뮬레이션 데이터로 RPPG API를 테스트합니다.</p>
+            <button onclick="testRPPGAPI()">🧪 RPPG API 테스트</button>
+            <div id="rppgResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎵 음성 분석 실제값 API 테스트</h3>
+            <p>시뮬레이션 데이터로 음성 분석 API를 테스트합니다.</p>
+            <button onclick="testVoiceAPI()">🧪 음성 분석 API 테스트</button>
+            <div id="voiceResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 전체 시스템 테스트</h3>
+            <p>모든 API를 순차적으로 테스트합니다.</p>
+            <button onclick="runFullTest()">🚀 전체 테스트 실행</button>
+            <div id="fullTestResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 실제값 API 클라이언트 (간단한 버전)
+        class RealValueAPITester {
+            constructor(baseURL = 'http://localhost:8000') {
+                this.baseURL = baseURL;
+            }
+
+            async checkServerHealth() {
+                try {
+                    const response = await fetch(`${this.baseURL}/api/v1/health`);
+                    return response.ok;
+                } catch (error) {
+                    console.error('서버 연결 확인 실패:', error);
+                    return false;
+                }
+            }
+
+            async testRPPGAPI() {
+                try {
+                    // 시뮬레이션 비디오 데이터 생성 (Blob으로 변환)
+                    const testVideoData = new Uint8Array(1024 * 1024); // 1MB 테스트 데이터
+                    for (let i = 0; i < testVideoData.length; i++) {
+                        testVideoData[i] = Math.floor(Math.random() * 256);
+                    }
+
+                    const formData = new FormData();
+                    formData.append('video_file', new Blob([testVideoData], { type: 'video/mp4' }), 'test_video.mp4');
+                    formData.append('user_id', 'test_user');
+                    formData.append('frame_count', '300');
+
+                    const response = await fetch(`${this.baseURL}/api/v1/measure/rppg`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    return { success: true, data: result };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async testVoiceAPI() {
+                try {
+                    // 시뮬레이션 오디오 데이터 생성
+                    const testAudioData = new Float32Array(44100 * 5); // 5초, 44.1kHz
+                    for (let i = 0; i < testAudioData.length; i++) {
+                        testAudioData[i] = Math.random() * 2 - 1; // -1 to 1
+                    }
+
+                    const formData = new FormData();
+                    formData.append('audio_file', new Blob([testAudioData.buffer], { type: 'audio/wav' }), 'test.wav');
+                    formData.append('user_id', 'test_user');
+                    formData.append('duration', '5');
+
+                    const response = await fetch(`${this.baseURL}/api/v1/measure/voice`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    return { success: true, data: result };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+        }
+
+        const apiTester = new RealValueAPITester();
+
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            const statusDiv = document.getElementById('serverStatus');
+            statusDiv.innerHTML = '<span class="status testing">백엔드 서버: 확인 중...</span><span class="status testing">프론트엔드 서버: 확인 중...</span>';
+
+            // 백엔드 서버 확인
+            const backendOnline = await apiTester.checkServerHealth();
+            const backendStatus = backendOnline ? 'online' : 'offline';
+            const backendText = backendOnline ? '백엔드 서버: 온라인' : '백엔드 서버: 오프라인';
+
+            // 프론트엔드 서버 확인
+            let frontendOnline = false;
+            try {
+                const response = await fetch('http://localhost:3000');
+                frontendOnline = response.ok;
+            } catch (error) {
+                frontendOnline = false;
+            }
+            const frontendStatus = frontendOnline ? 'online' : 'offline';
+            const frontendText = frontendOnline ? '프론트엔드 서버: 온라인' : '프론트엔드 서버: 오프라인';
+
+            statusDiv.innerHTML = `
+                <span class="status ${backendStatus}">${backendText}</span>
+                <span class="status ${frontendStatus}">${frontendText}</span>
+            `;
+        }
+
+        // RPPG API 테스트
+        async function testRPPGAPI() {
+            const resultDiv = document.getElementById('rppgResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '🧪 RPPG API 테스트 중...';
+
+            const result = await apiTester.testRPPGAPI();
+            
+            if (result.success) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ RPPG API 테스트 성공!\n\n응답 데이터:\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ RPPG API 테스트 실패:\n\n오류: ${result.error}`;
+            }
+        }
+
+        // 음성 분석 API 테스트
+        async function testVoiceAPI() {
+            const resultDiv = document.getElementById('voiceResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '🧪 음성 분석 API 테스트 중...';
+
+            const result = await apiTester.testVoiceAPI();
+            
+            if (result.success) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ 음성 분석 API 테스트 성공!\n\n응답 데이터:\n${JSON.stringify(result.data, null, 2)}`;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 음성 분석 API 테스트 실패:\n\n오류: ${result.error}`;
+            }
+        }
+
+        // 전체 테스트 실행
+        async function runFullTest() {
+            const resultDiv = document.getElementById('fullTestResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '🚀 전체 시스템 테스트 시작...\n\n';
+
+            let testResults = [];
+
+            // 1. 서버 상태 확인
+            resultDiv.textContent += '1️⃣ 서버 상태 확인 중...\n';
+            const backendOnline = await apiTester.checkServerHealth();
+            testResults.push({ test: '백엔드 서버', status: backendOnline ? '✅ 성공' : '❌ 실패' });
+            resultDiv.textContent += `   백엔드 서버: ${backendOnline ? '✅ 온라인' : '❌ 오프라인'}\n`;
+
+            // 2. RPPG API 테스트
+            resultDiv.textContent += '\n2️⃣ RPPG API 테스트 중...\n';
+            const rppgResult = await apiTester.testRPPGAPI();
+            testResults.push({ test: 'RPPG API', status: rppgResult.success ? '✅ 성공' : '❌ 실패' });
+            resultDiv.textContent += `   RPPG API: ${rppgResult.success ? '✅ 성공' : '❌ 실패'}\n`;
+
+            // 3. 음성 분석 API 테스트
+            resultDiv.textContent += '\n3️⃣ 음성 분석 API 테스트 중...\n';
+            const voiceResult = await apiTester.testVoiceAPI();
+            testResults.push({ test: '음성 분석 API', status: voiceResult.success ? '✅ 성공' : '❌ 실패' });
+
+            // 최종 결과
+            const successCount = testResults.filter(r => r.status.includes('✅')).length;
+            const totalCount = testResults.length;
+            
+            resultDiv.textContent += `\n🎯 최종 결과: ${successCount}/${totalCount} 테스트 통과\n\n`;
+            testResults.forEach(result => {
+                resultDiv.textContent += `${result.test}: ${result.status}\n`;
+            });
+
+            if (successCount === totalCount) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent += '\n🎉 모든 테스트가 성공했습니다! 실제값 시스템이 정상적으로 작동합니다.';
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent += '\n⚠️ 일부 테스트가 실패했습니다. 백엔드 서버 상태를 확인해주세요.';
+            }
+        }
+
+        // 페이지 로드 시 서버 상태 확인
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html> 

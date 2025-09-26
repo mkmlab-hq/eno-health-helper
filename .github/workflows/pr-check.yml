@@ -1,0 +1,86 @@
+name: PR Quality Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        if [ -f "frontend/package.json" ]; then
+          cd frontend
+          npm ci
+        else
+          echo "❌ No frontend/package.json found"
+          exit 1
+        fi
+        
+    - name: Check for critical errors
+      run: |
+        cd frontend
+        echo "🔍 Checking for critical errors..."
+        
+        # TypeScript 컴파일 에러 체크
+        if ! npm run type-check; then
+          echo "❌ TypeScript compilation errors found"
+          exit 1
+        fi
+        
+        # ESLint 에러 체크 (경고는 무시)
+        if npm run lint 2>&1 | grep -q "error"; then
+          echo "❌ ESLint errors found"
+          exit 1
+        fi
+        
+        echo "✅ No critical errors found"
+        
+    - name: Build test
+      run: |
+        cd frontend
+        echo "🔨 Testing build process..."
+        if ! npm run build; then
+          echo "❌ Build failed"
+          exit 1
+        fi
+        echo "✅ Build successful"
+        
+    - name: Check file structure
+      run: |
+        echo "📁 Checking file structure..."
+        
+        # 필수 파일들 체크
+        required_files=(
+          "frontend/package.json"
+          "frontend/next.config.js"
+          "firebase.json"
+          ".firebaserc"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Required file missing: $file"
+            exit 1
+          fi
+        done
+        
+        echo "✅ File structure check passed"
+        
+    - name: Success
+      run: |
+        echo "🎉 PR Quality Check passed!"
+        echo "✅ All critical checks completed successfully"
+        echo "✅ Ready for merge"

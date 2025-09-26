@@ -1,0 +1,10 @@
+name: Disabled CI
+on:
+  workflow_dispatch: # 수동 실행만 허용
+
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI Disabled
+        run: echo "This CI workflow is disabled. Use simple-ci.yml instead."
