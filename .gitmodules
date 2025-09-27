@@ -1,0 +1,3 @@
+[submodule "wisdom-repository"]
+	path = wisdom-repository
+	url = https://github.com/mkmlab-hq/mkm-lab-workspace-config.git
